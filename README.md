@@ -3,4 +3,4 @@ Data and scripts associated with genetic analysis of Orbicella faveolata genotyp
 
 Samples exposed to SCTLD - whole genome sequencing
 
-Nursery samples - 2bRAD analysis (https://github.com/z0on/2bRAD_denovo)
+Nursery samples - 2bRAD analysis (https://github.com/mstudiva/2bRAD_denovo)
