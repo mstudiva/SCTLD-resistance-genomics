@@ -1,6 +1,17 @@
 ## WGS reads processing pipeline, version September 20, 2023
 # Created by Michael Studivan (studivanms@gmail.com)
 
+#------------------------------
+## Scripts
+
+# Trim Galore (a wrapper of cutadapt and fastQC)
+git clone https://github.com/FelixKrueger/TrimGalore.git
+mv TrimGalore/* .
+rm -rf TrimGalore/
+
+# Makes all bin scripts executable
+chmod +x *.sh *.pl *.py
+
 
 #------------------------------
 ## Unzipping reads
@@ -21,48 +32,26 @@ sbatch -o rawReads.o%j -e rawReads.e%j rawReads.sh --mail-type=ALL --mail-user=s
 
 
 #------------------------------
-## Trimming and filtering
+## Creating conda environments for specialized modules
 
-# Deduplicates row pools into separate 3ill-BC's (1-12), using reverse complement as the ID
-2bRAD_trim_launch_dedup.pl fastq > trims.sh
-launcher_creator.py -j trims.sh -n trims -q shortq7 -t 06:00:00 -e studivanms@gmail.com
-sbatch --mem=200GB trims.slurm
-
-# Do we have the correct number of files?
-ls -l *.tr0 | wc -l
-
-mkdir trimmedReads
-srun mv *.tr0 trimmedReads/ &
-
-# Rezips the raw fastq's for storage
-zipper.py -f fastq -a -9 --launcher -e studivanms@gmail.com
-sbatch --mem=200GB zip.slurm
-
-cd ../trimmedReads
-
-# Renames files based on two column lookup table (sampleID.csv): filename, then sample ID
-srun sampleRename.py -i sampleID -f tr0
-
-# Creating conda environment for cutadapt, since it conflicts with launcher_creator
+# uncomment and run below if you don't have conda set up
 # module load miniconda3-4.6.14-gcc-8.3.0-eenl5dj
 # conda config --add channels defaults
 # conda config --add channels bioconda
 # conda config --add channels conda-forge
-# conda create -n cutadaptenv cutadapt
 
-conda activate cutadaptenv
+conda create -n trimgalore parallel cutadapt fastqc
+conda activate trimgalore # this is specifically for cutadapt, which doesn't play well with other KoKo modules
 
-# For loop to generate a list of commands for each file
-echo '#!/bin/bash' > trimse.sh
-echo 'module load miniconda3-4.6.14-gcc-8.3.0-eenl5dj' >> trimse.sh
-echo 'conda activate cutadaptenv' >> trimse.sh
-for file in *.tr0; do
-echo "cutadapt -q 15,15 -m 36 -o ${file/.tr0/}.trim $file > ${file/.tr0/}.trimlog.txt" >> trimse.sh;
-done
 
-# Old-school way of submitting jobs
-sbatch -o trimse.o%j -e trimse.e%j --mem=200GB trimse.sh
-sbatch -o trimse2.o%j -e trimse2.e%j --mem=200GB trimse2.sh
+#------------------------------
+## Removing adaptors and low quality reads
+
+conda activate trimgalore
+
+# does not work with launcher_creator, consider breaking up script and running multiple jobs
+chmod +x trim.sh
+sbatch -o trim.o%j -e trim.e%j --mem=200GB trim.sh
 
 conda deactivate
 
