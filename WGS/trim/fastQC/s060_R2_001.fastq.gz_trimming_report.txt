@@ -1,0 +1,208 @@
+
+SUMMARISING RUN PARAMETERS
+==========================
+Input filename: s060_R2_001.fastq.gz
+Trimming mode: paired-end
+Trim Galore version: 0.6.10
+Cutadapt version: 3.4
+Number of cores used for trimming: 1
+Quality Phred score cutoff: 20
+Quality encoding type selected: ASCII+33
+Using Illumina adapter for trimming (count: 2342). Second best hit was Nextera (count: 11)
+Adapter sequence: 'AGATCGGAAGAGC' (Illumina TruSeq, Sanger iPCR; auto-detected)
+Maximum trimming error rate: 0.1 (default)
+Minimum required adapter overlap (stringency): 1 bp
+Minimum required sequence length for both reads before a sequence pair gets removed: 20 bp
+Running FastQC on the data once trimming has completed
+Output file will be GZIP compressed
+
+
+This is cutadapt 3.4 with Python 3.9.2
+Command line parameters: -j 1 -e 0.1 -q 20 -O 1 -a AGATCGGAAGAGC s060_R2_001.fastq.gz
+Processing reads on 1 core in single-end mode ...
+Finished in 2151.13 s (88 µs/read; 0.68 M reads/minute).
+
+=== Summary ===
+
+Total reads processed:              24,545,365
+Reads with adapters:                 8,865,769 (36.1%)
+Reads written (passing filters):    24,545,365 (100.0%)
+
+Total basepairs processed: 3,681,804,750 bp
+Quality-trimmed:               9,465,329 bp (0.3%)
+Total written (filtered):  3,658,550,807 bp (99.4%)
+
+=== Adapter 1 ===
+
+Sequence: AGATCGGAAGAGC; Type: regular 3'; Length: 13; Trimmed: 8865769 times
+
+No. of allowed errors:
+1-9 bp: 0; 10-13 bp: 1
+
+Bases preceding removed adapters:
+  A: 34.6%
+  C: 25.7%
+  G: 16.6%
+  T: 23.2%
+  none/other: 0.0%
+
+Overview of removed sequences
+length	count	expect	max.err	error counts
+1	6766444	6136341.2	0	6766444
+2	1410565	1534085.3	0	1410565
+3	460883	383521.3	0	460883
+4	114114	95880.3	0	114114
+5	24959	23970.1	0	24959
+6	6344	5992.5	0	6344
+7	4036	1498.1	0	4036
+8	3658	374.5	0	3658
+9	3087	93.6	0	2723 364
+10	3665	23.4	1	2886 779
+11	3279	5.9	1	2773 506
+12	3308	1.5	1	2938 370
+13	2777	0.4	1	2471 306
+14	2971	0.4	1	2645 326
+15	2396	0.4	1	2174 222
+16	2501	0.4	1	2268 233
+17	2784	0.4	1	2510 274
+18	1742	0.4	1	1584 158
+19	2759	0.4	1	2481 278
+20	2000	0.4	1	1819 181
+21	1761	0.4	1	1582 179
+22	1962	0.4	1	1790 172
+23	1815	0.4	1	1654 161
+24	2317	0.4	1	2096 221
+25	1911	0.4	1	1759 152
+26	1336	0.4	1	1201 135
+27	1212	0.4	1	1114 98
+28	1537	0.4	1	1410 127
+29	1299	0.4	1	1181 118
+30	1411	0.4	1	1284 127
+31	1238	0.4	1	1130 108
+32	1341	0.4	1	1219 122
+33	1046	0.4	1	967 79
+34	1250	0.4	1	1133 117
+35	1023	0.4	1	946 77
+36	962	0.4	1	877 85
+37	1047	0.4	1	948 99
+38	882	0.4	1	806 76
+39	846	0.4	1	787 59
+40	772	0.4	1	711 61
+41	763	0.4	1	692 71
+42	817	0.4	1	761 56
+43	598	0.4	1	550 48
+44	779	0.4	1	709 70
+45	646	0.4	1	589 57
+46	530	0.4	1	484 46
+47	550	0.4	1	500 50
+48	430	0.4	1	385 45
+49	527	0.4	1	471 56
+50	401	0.4	1	358 43
+51	402	0.4	1	371 31
+52	363	0.4	1	327 36
+53	393	0.4	1	351 42
+54	409	0.4	1	368 41
+55	267	0.4	1	226 41
+56	346	0.4	1	317 29
+57	452	0.4	1	389 63
+58	205	0.4	1	177 28
+59	193	0.4	1	151 42
+60	336	0.4	1	290 46
+61	165	0.4	1	144 21
+62	179	0.4	1	150 29
+63	450	0.4	1	399 51
+64	177	0.4	1	149 28
+65	118	0.4	1	98 20
+66	140	0.4	1	114 26
+67	156	0.4	1	129 27
+68	134	0.4	1	110 24
+69	142	0.4	1	115 27
+70	167	0.4	1	144 23
+71	103	0.4	1	83 20
+72	110	0.4	1	83 27
+73	133	0.4	1	115 18
+74	107	0.4	1	86 21
+75	88	0.4	1	64 24
+76	66	0.4	1	56 10
+77	51	0.4	1	28 23
+78	70	0.4	1	49 21
+79	76	0.4	1	54 22
+80	68	0.4	1	55 13
+81	77	0.4	1	52 25
+82	71	0.4	1	45 26
+83	71	0.4	1	43 28
+84	85	0.4	1	50 35
+85	66	0.4	1	51 15
+86	63	0.4	1	43 20
+87	87	0.4	1	56 31
+88	55	0.4	1	36 19
+89	59	0.4	1	29 30
+90	50	0.4	1	33 17
+91	51	0.4	1	29 22
+92	46	0.4	1	29 17
+93	67	0.4	1	44 23
+94	50	0.4	1	28 22
+95	42	0.4	1	23 19
+96	54	0.4	1	24 30
+97	51	0.4	1	28 23
+98	52	0.4	1	31 21
+99	41	0.4	1	25 16
+100	36	0.4	1	21 15
+101	53	0.4	1	31 22
+102	46	0.4	1	25 21
+103	30	0.4	1	12 18
+104	46	0.4	1	24 22
+105	39	0.4	1	17 22
+106	41	0.4	1	27 14
+107	40	0.4	1	19 21
+108	48	0.4	1	23 25
+109	36	0.4	1	19 17
+110	31	0.4	1	12 19
+111	34	0.4	1	16 18
+112	38	0.4	1	20 18
+113	31	0.4	1	23 8
+114	24	0.4	1	11 13
+115	24	0.4	1	16 8
+116	41	0.4	1	22 19
+117	20	0.4	1	13 7
+118	24	0.4	1	8 16
+119	18	0.4	1	8 10
+120	25	0.4	1	8 17
+121	29	0.4	1	13 16
+122	24	0.4	1	8 16
+123	22	0.4	1	10 12
+124	25	0.4	1	14 11
+125	26	0.4	1	11 15
+126	26	0.4	1	11 15
+127	28	0.4	1	14 14
+128	11	0.4	1	4 7
+129	18	0.4	1	5 13
+130	26	0.4	1	12 14
+131	16	0.4	1	10 6
+132	15	0.4	1	6 9
+133	19	0.4	1	7 12
+134	34	0.4	1	17 17
+135	26	0.4	1	12 14
+136	14	0.4	1	4 10
+137	14	0.4	1	5 9
+138	16	0.4	1	4 12
+139	17	0.4	1	4 13
+140	13	0.4	1	4 9
+141	17	0.4	1	5 12
+142	14	0.4	1	7 7
+143	13	0.4	1	4 9
+144	12	0.4	1	3 9
+145	14	0.4	1	9 5
+146	16	0.4	1	9 7
+147	13	0.4	1	3 10
+148	12	0.4	1	4 8
+149	12	0.4	1	2 10
+150	17	0.4	1	2 15
+
+RUN STATISTICS FOR INPUT FILE: s060_R2_001.fastq.gz
+=============================================
+24545365 sequences processed in total
+
+Total number of sequences analysed for the sequence pair length validation: 24545365
+
+Number of sequence pairs removed because at least one read was shorter than the length cutoff (20 bp): 7968 (0.03%)

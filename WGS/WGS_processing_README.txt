@@ -14,21 +14,27 @@ chmod +x *.sh *.pl *.py
 
 
 #------------------------------
-## Unzipping reads
+## Getting reads
 
-> unzip
+# scp sequences to project directory on KoKo
+scp *.gz mstudiva@koko-login.hpc.fau.edu:~/path/to/project/directory/
+
+# FastQC of raw reads
+module load fastqc/v0.11.9
+> rawqc.sh
 for F in *.gz; do
-echo "gunzip $F" >> unzip;
+echo "fastqc $F" >> rawqc.sh;
 done
 
-module load launcher
-launcher_creator.py -j unzip -n unzip -q shortq7 -t 06:00:00 -e studivanms@gmail.com
-sbatch --mem=200GB unzip.slurm
+launcher_creator.py -j rawqc.sh -n fastqc -q shortq7 -t 6:00:00 -e studivanms@gmail.com
+sbatch --mem=200GB fastqc.slurm
+# when done, scp .html files to local machine
 
-# Count raw reads
-echo '#!/bin/bash' >rawReads.sh
-echo readCounts.sh -e .fastq -o resistRaw >>rawReads.sh
-sbatch -o rawReads.o%j -e rawReads.e%j rawReads.sh --mail-type=ALL --mail-user=studivanms@gmail.com
+# Count raw reads (doesn't work when files are gzipped [.gz])
+# echo '#!/bin/bash' >rawReads.sh
+# echo readCounts.sh -e gz -o Raw >>rawReads.sh
+# cat RawReadCounts
+# sbatch -o rawReads.o%j -e rawReads.e%j rawReads.sh --mail-type=ALL --mail-user=studivanms@gmail.com
 
 
 #------------------------------
@@ -40,37 +46,48 @@ sbatch -o rawReads.o%j -e rawReads.e%j rawReads.sh --mail-type=ALL --mail-user=s
 # conda config --add channels bioconda
 # conda config --add channels conda-forge
 
-conda create -n trimgalore parallel cutadapt fastqc
-conda activate trimgalore # this is specifically for cutadapt, which doesn't play well with other KoKo modules
+conda create -n cutadaptenv cutadapt
+conda activate cutadaptenv # this is specifically for cutadapt, which doesn't play well with other KoKo modules
 
 
 #------------------------------
 ## Removing adaptors and low quality reads
 
-conda activate trimgalore
+# on a local machine
+gsplit -l 4 -d --additional-suffix=.sh trim.sh trim
+
+# back on KoKo
+mkdir filteredReads
+
+conda activate cutadaptenv
+module load fastqc/v0.11.9
 
 # does not work with launcher_creator, consider breaking up script and running multiple jobs
-chmod +x trim.sh
-sbatch -o trim.o%j -e trim.e%j --mem=200GB trim.sh
+chmod +x *.sh
+sbatch -o trim.o%j -e trim.e%j trim.sh # run sbatch command with all the other versions of your script
 
 conda deactivate
 
 # Do we have the correct number of files?
-ls -l *.trim | wc -l
+cd trimmedReads/
+ls -l *.gz | wc -l
 
-# Counting the trimmed reads
-echo '#!/bin/bash' >cleanReads
-echo readCounts.sh -e trim -o Filt >>cleanReads
-sbatch --mem=200GB cleanReads
+# FastQC of trimmed reads
+module load fastqc/v0.11.9
+> trimqc.sh
+for F in *.gz; do
+echo "fastqc $F" >> trimqc.sh;
+done
 
-mkdir ../filteredReads
-mv *.trim ../filteredReads
+launcher_creator.py -j trimqc.sh -n fastqc -q shortq7 -t 6:00:00 -e studivanms@gmail.com
+sbatch --mem=200GB fastqc.slurm
+# when done, scp .html files to local machine
 
-# Rezips the row pools for storage
-zipper.py -f tr0 -a -9 --launcher -e studivanms@gmail.com
-sbatch zip.slurm
-
-cat FiltReadCounts
+# Counting the trimmed reads (doesn't work when files are gzipped [.gz])
+# echo '#!/bin/bash' >cleanReads
+# echo readCounts.sh -e gz -o Filt >>cleanReads
+# sbatch --mem=200GB cleanReads
+# cat FiltReadCounts
 
 
 #------------------------------
@@ -90,9 +107,14 @@ sbatch -o genomeBuild.o%j -e genomeBuild.e%j --mem=200GB genomeBuild.sh
 cd ~/project/directory/filteredReads
 mkdir symbionts
 
+# on a local machine, create a bowtie job script like this:
+# bowtie2 --score-min L,16,1 --local -L 16 -x /mnt/beegfs/home/mstudiva/db/ofavgenome/OfaveolataGenome -1 s001_R1_001_val_1.fq.gz -2 s001_R2_001_val_2.fq.gz -S s001.bt2.sam --no-unal --al ./s001.al --un symbionts/s001.un
+# scp to KoKo
+chmod +x bowtie.sh
+
 # mapping with --local option, enables clipping of mismatching ends (guards against deletions near ends of RAD tags)
-2bRAD_bowtie2_launcher.py -g ~/db/ofavgenome/OfaveolataGenome -f .trim --split -u un -a al --undir symbionts --launcher -e studivanms@gmail.com
-sbatch --mem=200GB maps.slurm
+launcher_creator.py -j bowtie.sh -n maps -q shortq7 -t 6:00:00 -e studivanms@gmail.com -N
+sbatch maps.slurm
 
 ls *.sam | wc -l
 
