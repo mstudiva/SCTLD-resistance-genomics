@@ -113,7 +113,7 @@ mkdir symbionts
 chmod +x bowtie.sh
 
 # mapping with --local option, enables clipping of mismatching ends (guards against deletions near ends of RAD tags)
-launcher_creator.py -j bowtie.sh -n maps -q shortq7 -t 6:00:00 -e studivanms@gmail.com -N
+launcher_creator.py -j bowtie.sh -n maps -q mediumq7 -t 6:00:00 -e studivanms@gmail.com -N 24
 sbatch maps.slurm
 
 ls *.sam | wc -l
