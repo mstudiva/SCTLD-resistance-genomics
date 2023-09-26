@@ -108,12 +108,12 @@ cd ~/project/directory/filteredReads
 mkdir symbionts
 
 # on a local machine, create a bowtie job script like this:
-# bowtie2 --score-min L,16,1 --local -L 16 -x /mnt/beegfs/home/mstudiva/db/ofavgenome/OfaveolataGenome -1 s001_R1_001_val_1.fq.gz -2 s001_R2_001_val_2.fq.gz -S s001.bt2.sam --no-unal --al ./s001.al --un symbionts/s001.un
+# bowtie2 --score-min L,16,1 --local -L 16 -x /mnt/beegfs/home/mstudiva/db/ofavgenome/OfaveolataGenome -1 s001_R1_001_val_1.fq.gz -2 s001_R2_001_val_2.fq.gz -S s001.bt2.sam --no-unal --al-conc ./s001.al --un-conc symbionts/s001.un
 # scp to KoKo
 chmod +x bowtie.sh
 
 # mapping with --local option, enables clipping of mismatching ends (guards against deletions near ends of RAD tags)
-launcher_creator.py -j bowtie.sh -n maps -q mediumq7 -t 6:00:00 -e studivanms@gmail.com -N 24
+launcher_creator.py -j bowtie.sh -n maps -q mediumq7 -t 24:00:00 -e studivanms@gmail.com -N 24
 sbatch maps.slurm
 
 ls *.sam | wc -l
