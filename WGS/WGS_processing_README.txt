@@ -118,7 +118,7 @@ sbatch maps.slurm
 
 ls *.sam | wc -l
 
-ls *al | cut -d '.' -f 1 >align1
+ls *.1.al | cut -d '.' -f 1 >align1
 grep "% overall" maps.e* | cut -d ' ' -f 1 >align2
 paste <(awk -F' ' '{print $1}' align1) <(awk -F' ' '{print $1}' align2) >alignmentRates
 rm align1 align2
@@ -137,6 +137,10 @@ ls *bam | wc -l
 zipper.py -a -9 -f sam --launcher -e studivanms@gmail.com
 sbatch zip.slurm
 
+mkdir ../mappedReads
+mv *.sam.gz ../mappedReads
+mv *.al ../mappedReads
+
 
 #------------------------------
 ## Genotyping
@@ -144,6 +148,7 @@ sbatch zip.slurm
 mkdir ../ANGSD
 cd ../ANGSD
 mv ../mappedReads/*.bam* .
+# If working with WGS and 2bRAD samples together, copy all *.bam* files to a master directory 'ANGSD'
 
 ls *bam >bamsClones
 
