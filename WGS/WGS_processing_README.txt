@@ -154,13 +154,15 @@ ls *bam >bamsClones
 
 module load angsd-0.933-gcc-9.2.0-65d64pp
 
-export FILTERS="-uniqueOnly 1 -remove_bads 1 -minMapQ 20 -maxDepth 2260 -minInd 113"
+# change the -minInd flag to the number of samples you have
+export FILTERS="-uniqueOnly 1 -remove_bads 1 -minMapQ 20 -maxDepth 2260 -minInd 365"
 export TODO="-doQsDist 1 -doDepth 1 -doCounts 1 -dumpCounts 2"
 
-echo '#!/bin/bash' >ofavDD.sh
+>ofavDD.sh
 echo angsd -b bamsClones -GL 1 $FILTERS $TODO -P 1 -out dd >>ofavDD.sh
 
-sbatch --mem=200GB -o ofavDD.o%j -e ofavDD.e%j --mail-user=studivanms@gmail.com --mail-type=ALL ofavDD.sh
+launcher_creator.py -j ofavDD.sh -n ofavDD -q mediumq7 -t 24:00:00 -e studivanms@gmail.com
+sbatch --mem=200GB ofavDD.slurm
 
 module load R/3.6.1
 echo '#!/bin/bash' >RQC.sh
