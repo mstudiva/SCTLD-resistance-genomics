@@ -222,6 +222,15 @@ echo samtools faidx Orbicella_faveolata_gen_17.scaffolds.fa >>genomeBuild.sh
 
 sbatch -o genomeBuild.o%j -e genomeBuild.e%j --mem=200GB genomeBuild.sh
 
+# For GATK (Hard call genotyping) only
+# First, on a local machine
+git clone https://github.com/broadinstitute/picard.git
+cd picard/
+./gradlew shadowJar
+mv build/libs/picard.jar ../
+java -jar picard.jar CreateSequenceDictionary R=Orbicella_faveolata_gen_17.scaffolds.fa  O=OfaveolataGenome.dict
+scp OfaveolataGenome.dict mstudiva@koko-login.hpc.fau.edu:~/db/.
+
 
 #------------------------------
 ## 2bRAD alignment
@@ -304,7 +313,7 @@ mv *.al ../mappedReads
 
 
 #------------------------------
-## Genotyping (2bRAD and WGS together)
+## Fuzzy Genotyping (ANGSD; 2bRAD and WGS together)
 
 # If working with WGS and 2bRAD samples together, copy all *.bam* files to a master directory 'ANGSD'
 mkdir project/directory/ANGSD
@@ -354,3 +363,7 @@ sbatch --mem=200GB -o ofavClones.o%j -e ofavClones.e%j -p shortq7 --mail-type=AL
 cd local/directory/
 scp mstudiva@koko-login.hpc.fau.edu:~/resist/ANGSD/ofavClones.ibsMat .
 scp mstudiva@koko-login.hpc.fau.edu:~/resist/ANGSD/bamsClones .
+
+
+#------------------------------
+## Hard Genotyping (GATK; 2bRAD and WGS together)
