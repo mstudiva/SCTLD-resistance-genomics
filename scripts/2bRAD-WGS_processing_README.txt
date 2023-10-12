@@ -62,6 +62,9 @@ chmod +x *.sh *.pl *.py
 conda create -n cutadaptenv cutadapt
 conda activate cutadaptenv # this is specifically for cutadapt, which doesn't play well with other KoKo modules
 
+conda create -n GATKenv gatk4 picard openjdk
+conda activate GATKenv # this is specifically for cutadapt, which requires a different version of java than KoKo
+
 
 #------------------------------
 ## 2bRAD reads
@@ -223,13 +226,14 @@ echo samtools faidx Orbicella_faveolata_gen_17.scaffolds.fa >>genomeBuild.sh
 sbatch -o genomeBuild.o%j -e genomeBuild.e%j --mem=200GB genomeBuild.sh
 
 # For GATK (Hard call genotyping) only
-# First, on a local machine
+conda activate GATKenv
+cd ~/bin/
 git clone https://github.com/broadinstitute/picard.git
 cd picard/
 ./gradlew shadowJar
-mv build/libs/picard.jar ../
-java -jar picard.jar CreateSequenceDictionary R=Orbicella_faveolata_gen_17.scaffolds.fa  O=OfaveolataGenome.dict
-scp OfaveolataGenome.dict mstudiva@koko-login.hpc.fau.edu:~/db/.
+
+cd ~/db/ofavgenome/
+java -jar ~/bin/picard/build/libs/picard.jar CreateSequenceDictionary R=Orbicella_faveolata_gen_17.scaffolds.fa  O=OfaveolataGenome.dict
 
 
 #------------------------------
@@ -334,7 +338,7 @@ export TODO="-doQsDist 1 -doDepth 1 -doCounts 1 -dumpCounts 2"
 echo '#!/bin/bash' >ofavDD.sh
 echo angsd -b bamsClones -GL 1 $FILTERS $TODO -P 1 -out dd -nThreads 20 >>ofavDD.sh
 
-sbatch --mem=200GB -o ofavDD.o%j -e ofavDD.e%j --mail-user=studivanms@gmail.com --mail-type=ALL --partition=mediumq7 ofavDD.sh
+sbatch --mem=200GB -o ofavDD.o%j -e ofavDD.e%j --mail-user=studivanms@gmail.com --mail-type=ALL --partition=longq7 ofavDD.sh
 
 module load R/3.6.1
 echo '#!/bin/bash' >RQC.sh
@@ -350,14 +354,16 @@ scp mstudiva@koko-login.hpc.fau.edu:~/resist/ANGSD/\*.pdf .
 
 # Clones
 
-# change the -minInd flag to the number of samples you have
-FILTERS="-uniqueOnly 1 -remove_bads 1 -minMapQ 20 -minQ 30 -dosnpstat 1 -doHWE 1 -hwe_pval 1e-5 -sb_pval 1e-5 -hetbias_pval 1e-5 -skipTriallelic 1 -minInd 365 -snp_pval 1e-6 -minMaf 0.05"
+module load angsd-0.933-gcc-9.2.0-65d64pp
+
+# change the -minInd flag to 80% of the number of samples you have
+FILTERS="-uniqueOnly 1 -remove_bads 1 -minMapQ 20 -minQ 30 -dosnpstat 1 -doHWE 1 -hwe_pval 1e-5 -sb_pval 1e-5 -hetbias_pval 1e-5 -skipTriallelic 1 -minInd 292 -snp_pval 1e-6 -minMaf 0.05"
 TODO="-doMajorMinor 1 -doMaf 1 -doCounts 1 -makeMatrix 1 -doIBS 1 -doCov 1 -doGeno 8 -doBcf 1 -doPost 1 -doGlf 2"
 
 echo '#!/bin/bash' > ofavClones.sh
 echo angsd -b bamsClones -GL 1 $FILTERS $TODO -P 1 -out ofavClones >>ofavClones.sh
 
-sbatch --mem=200GB -o ofavClones.o%j -e ofavClones.e%j -p shortq7 --mail-type=ALL --mail-user=studivanms@gmail.com ofavClones.sh
+sbatch --mem=200GB -o ofavClones.o%j -e ofavClones.e%j --mail-type=ALL --mail-user=studivanms@gmail.com --partition=longq7 ofavClones.sh
 
 # scp to local machine
 cd local/directory/
@@ -368,14 +374,20 @@ scp mstudiva@koko-login.hpc.fau.edu:~/resist/ANGSD/bamsClones .
 #------------------------------
 ## Hard Genotyping (GATK; 2bRAD and WGS together)
 
-conda create -n GATKenv gatk picard
-conda activate GATKenv
-
 mkdir project/directory/GATK
 mv project/directory/2bRAD/mappedReads/*.bam* .
 mv project/directory/WGS/mappedReads/*.bam* .
 
 ls *.bam > bams
 
+export GENOME_REF=~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa
+
 echo '#!/bin/bash' >unig2
-echo 'java -jar GenomeAnalysisTK.jar -T UnifiedGenotyper -R $GENOME_REF -nt 40 -nct 1 --genotype_likelihoods_model SNP' >>unig2
+java -jar $TACC_GATK_DIR/GenomeAnalysisTK.jar -T UnifiedGenotyper \
+--reference_sequence $GENOME_REF -nt 40 -nct 1 \
+--genotype_likelihoods_model SNP \' >>unig2
+cat bams | perl -pe 's/(\S+\.bam)/-I $1 \\/' >> unig2
+echo '-o primary.vcf ' >> unig2
+
+
+sbatch --mem=200GB -o unig2.o%j -e unig2.e%j --mail-user=studivanms@gmail.com --mail-type=ALL --partition=longq7 unig2
