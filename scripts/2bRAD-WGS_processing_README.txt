@@ -367,3 +367,15 @@ scp mstudiva@koko-login.hpc.fau.edu:~/resist/ANGSD/bamsClones .
 
 #------------------------------
 ## Hard Genotyping (GATK; 2bRAD and WGS together)
+
+conda create -n GATKenv gatk picard
+conda activate GATKenv
+
+mkdir project/directory/GATK
+mv project/directory/2bRAD/mappedReads/*.bam* .
+mv project/directory/WGS/mappedReads/*.bam* .
+
+ls *.bam > bams
+
+echo '#!/bin/bash' >unig2
+echo 'java -jar GenomeAnalysisTK.jar -T UnifiedGenotyper -R $GENOME_REF -nt 40 -nct 1 --genotype_likelihoods_model SNP' >>unig2
