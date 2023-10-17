@@ -233,7 +233,7 @@ cd picard/
 ./gradlew shadowJar
 
 cd ~/db/ofavgenome/
-java -jar ~/bin/picard/build/libs/picard.jar CreateSequenceDictionary R=Orbicella_faveolata_gen_17.scaffolds.fa  O=OfaveolataGenome.dict
+java -jar ~/bin/picard/build/libs/picard.jar CreateSequenceDictionary R=Orbicella_faveolata_gen_17.scaffolds.fa  O=Orbicella_faveolata_gen_17.scaffolds.dict
 
 
 #------------------------------
@@ -365,10 +365,11 @@ echo angsd -b bamsClones -GL 1 $FILTERS $TODO -P 1 -out ofavClones >>ofavClones.
 
 sbatch --mem=200GB -o ofavClones.o%j -e ofavClones.e%j --mail-type=ALL --mail-user=studivanms@gmail.com --partition=longq7 ofavClones.sh
 
-# scp to local machine
+# scp ibs matrix and list of bam files to local machine
 cd local/directory/
 scp mstudiva@koko-login.hpc.fau.edu:~/resist/ANGSD/ofavClones.ibsMat .
 scp mstudiva@koko-login.hpc.fau.edu:~/resist/ANGSD/bamsClones .
+# Next, run 2bRAD clones.R script
 
 
 #------------------------------
@@ -378,16 +379,57 @@ mkdir project/directory/GATK
 mv project/directory/2bRAD/mappedReads/*.bam* .
 mv project/directory/WGS/mappedReads/*.bam* .
 
-ls *.bam > bams
+# Need to add a read group header to each file before GATK can run
+# Read groups specify which sample a read is assigned to in multiplexed samples
+# on local machine, download bam files to local directory
+git clone https://github.com/djhshih/rgsam.git
+cd rgsam
+make
+make install
 
+# Extracts read group information from bam files using rgsam and puts it in a text file
+cd ~/where/bams/are/
+for F in *.bam; do
+samtools view $F | rgsam collect -s $F -o $F.rg.txt;
+done
+
+# Now adding header into each respective bam file
+for F in *.bam; do
+samtools view -h $F |
+  rgsam tag -r $F.rg.txt |
+  samtools view -b - > $F.rg;
+done
+
+# Double check that read groups are now in your bams
+samtools view -H Sample.bt2.bam.rg | grep '@RG'
+# All good? Now scp back to KoKo
+scp *bam* mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
+
+# Move all original .bam and .bam.bai files elsewhere
+mv *.bam ../
+mv *.bai ../
+
+# Now remaking index files for each .rg
+module load samtools-1.10-gcc-8.3.0-khgksad
+echo '#!/bin/bash' > index.sh
+for F in *.rg; do
+echo "samtools index $F" >> index.sh;
+done
+launcher_creator.py -j index.sh -n index -q shortq7 -t 6:00:00 -e studivanms@gmail.com
+sbatch index.slurm
+
+# Ok, let's genotype!
+conda activate GATKenv
 export GENOME_REF=~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa
 
-echo '#!/bin/bash' >unig2
-java -jar $TACC_GATK_DIR/GenomeAnalysisTK.jar -T UnifiedGenotyper \
---reference_sequence $GENOME_REF -nt 40 -nct 1 \
---genotype_likelihoods_model SNP \' >>unig2
-cat bams | perl -pe 's/(\S+\.bam)/-I $1 \\/' >> unig2
-echo '-o primary.vcf ' >> unig2
-
-
-sbatch --mem=200GB -o unig2.o%j -e unig2.e%j --mail-user=studivanms@gmail.com --mail-type=ALL --partition=longq7 unig2
+echo '#!/bin/bash' > genos.sh
+echo 'conda activate GATKenv' >> genos.sh
+for F in *.rg; do
+echo "gatk --java-options "-Xmx4g" HaplotypeCaller \
+   -R $GENOME_REF \
+   -ERC GVCF \
+   -I $F\
+   -O $F.vcf" >> genos.sh;
+   done
+launcher_creator.py -j genos.sh -n genos -q mediumq7 -t 24:00:00 -N 16 -e studivanms@gmail.com
+sbatch genos.slurm
