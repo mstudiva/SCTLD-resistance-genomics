@@ -433,3 +433,11 @@ echo "gatk --java-options "-Xmx4g" HaplotypeCaller \
    done
 launcher_creator.py -j genos.sh -n genos -q mediumq7 -t 24:00:00 -N 16 -e studivanms@gmail.com
 sbatch genos.slurm
+
+# Some files may not be done after 24h - if so:
+# on a local machine
+gsplit -l 3 -d --additional-suffix=.sh genos2.sh genos2
+
+# does not work with launcher_creator, consider breaking up script and running multiple jobs
+chmod +x *.sh
+sbatch --partition=longq7 -o genos2.o%j -e genos2.e%j genos2.sh # run sbatch command with all the other versions of your script
