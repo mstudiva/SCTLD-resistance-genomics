@@ -441,3 +441,24 @@ gsplit -l 3 -d --additional-suffix=.sh genos2.sh genos2
 # does not work with launcher_creator, consider breaking up script and running multiple jobs
 chmod +x *.sh
 sbatch --partition=longq7 -o genos2.o%j -e genos2.e%j genos2.sh # run sbatch command with all the other versions of your script
+
+# Create a sample/vcf lookup tab-delimited file 'GenomicsDBImport' on your local machine and scp it to KoKo
+scp vcfs mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
+
+# Create a lookup table of genome scaffolds
+cd ~/db/ofavgenome/
+grep -e ">" Orbicella_faveolata_gen_17.scaffolds.fa | awk 'sub(/^>/, "")' > intervals
+mv intervals ~/resist/GATK/intervals
+cd ~/resist/GATK/
+
+# Combining all vcf files into a genomics workspace
+echo "gatk --java-options "-Xmx4g -Xms4g" \
+       GenomicsDBImport \
+       --genomicsdb-workspace-path ofav_database \
+       --batch-size 50 \
+       -L intervals \
+       --sample-name-map vcfs \
+       --tmp-dir=~/scratch/ \
+       --reader-threads 5" > combine.sh
+chmod +x combine.sh
+sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine.sh --cpus-per-task=5
