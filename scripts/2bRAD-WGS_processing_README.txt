@@ -1,5 +1,5 @@
-## WGS reads processing pipeline, version October 20, 2023
-# Created by Ryan Eckert (reckert2017@fau.edu), modified by Michael Studivan (studivanms@gmail.com) for this project
+## WGS reads processing pipeline, version October 24, 2023
+# Created by Michael Studivan (studivanms@gmail.com) based on 2bRAD pipeline by Ryan Eckert (reckert2017@fau.edu)
 https://ryaneckert.github.io/Stephanocoenia_FKNMS_PopGen/code/
 
 
@@ -447,18 +447,22 @@ scp vcfs mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
 
 # Create a lookup table of genome scaffolds
 cd ~/db/ofavgenome/
-grep -e ">" Orbicella_faveolata_gen_17.scaffolds.fa | awk 'sub(/^>/, "")' > intervals
-mv intervals ~/resist/GATK/intervals
+grep -e ">" Orbicella_faveolata_gen_17.scaffolds.fa | awk 'sub(/^>/, "")' > intervals.list
+mv intervals.list ~/resist/GATK/intervals.list
 cd ~/resist/GATK/
 
+# Create a temp directory in your working directory
+mkdir temp
+
 # Combining all vcf files into a genomics workspace
-echo "gatk --java-options "-Xmx4g -Xms4g" \
+echo '#!/bin/bash' > combine.sh
+echo 'conda activate GATKenv' >> combine.sh
+echo "gatk --java-options "-Xmx200g" \
        GenomicsDBImport \
        --genomicsdb-workspace-path ofav_database \
        --batch-size 50 \
-       -L intervals \
+       -L intervals.list \
        --sample-name-map vcfs \
-       --tmp-dir=~/scratch/ \
-       --reader-threads 5" > combine.sh
+       --tmp-dir temp" >> combine.sh
 chmod +x combine.sh
-sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine.sh --cpus-per-task=5
+sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine.sh --mem=0
