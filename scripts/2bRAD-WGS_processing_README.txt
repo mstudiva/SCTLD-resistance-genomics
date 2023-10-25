@@ -443,7 +443,8 @@ chmod +x *.sh
 sbatch --partition=longq7 -o genos2.o%j -e genos2.e%j genos2.sh # run sbatch command with all the other versions of your script
 
 # Create a sample/vcf lookup tab-delimited file 'GenomicsDBImport' on your local machine and scp it to KoKo
-scp vcfs mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
+# If you have more than 150 samples, break up into 120-sample chunk scripts
+scp vcfs* mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
 
 # Create a lookup table of genome scaffolds
 cd ~/db/ofavgenome/
@@ -454,10 +455,10 @@ cd ~/resist/GATK/
 # Create a temp directory in your working directory
 mkdir temp
 
-# Combining all vcf files into a genomics workspace
+# Combining first chunk of vcf files into a genomics database
 echo '#!/bin/bash' > combine.sh
 echo 'conda activate GATKenv' >> combine.sh
-echo "gatk --java-options "-Xmx200g" \
+echo "gatk --java-options "-Xmx12g" \
        GenomicsDBImport \
        --genomicsdb-workspace-path ofav_database \
        --batch-size 50 \
@@ -466,3 +467,28 @@ echo "gatk --java-options "-Xmx200g" \
        --tmp-dir temp" >> combine.sh
 chmod +x combine.sh
 sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine.sh --mem=0
+
+# Run with all other chunks, adding to the original database
+echo '#!/bin/bash' > combine2.sh
+echo 'conda activate GATKenv' >> combine2.sh
+echo "gatk --java-options "-Xmx12g" \
+       GenomicsDBImport \
+       --genomicsdb-update-workspace-path ofav_database \
+       --batch-size 50 \
+       -L intervals.list \
+       --sample-name-map vcfs2 \
+       --tmp-dir temp" >> combine2.sh
+chmod +x combine2.sh
+sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine2.sh --mem=0
+
+echo '#!/bin/bash' > combine3.sh
+echo 'conda activate GATKenv' >> combine3.sh
+echo "gatk --java-options "-Xmx12g" \
+       GenomicsDBImport \
+       --genomicsdb-update-workspace-path ofav_database \
+       --batch-size 50 \
+       -L intervals.list \
+       --sample-name-map vcfs2 \
+       --tmp-dir temp" >> combine3.sh
+chmod +x combine3.sh
+sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine3.sh --mem=0
