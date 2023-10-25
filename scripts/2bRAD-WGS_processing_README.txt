@@ -418,7 +418,7 @@ done
 launcher_creator.py -j index.sh -n index -q shortq7 -t 6:00:00 -e studivanms@gmail.com
 sbatch index.slurm
 
-# Ok, let's genotype!
+# Ok, let's do individual variant calls!
 conda activate GATKenv
 export GENOME_REF=~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa
 
@@ -441,6 +441,13 @@ gsplit -l 3 -d --additional-suffix=.sh genos2.sh genos2
 # does not work with launcher_creator, consider breaking up script and running multiple jobs
 chmod +x *.sh
 sbatch --partition=longq7 -o genos2.o%j -e genos2.e%j genos2.sh # run sbatch command with all the other versions of your script
+
+# Now for some housekeeping
+mkdir mappedReads
+mv *.rg *.bai *.txt mappedReads/
+cd mappedReads/
+zipper.py -a -9 -f rg --launcher -e studivanms@gmail.com
+sbatch zip.slurm
 
 # Create a sample/vcf lookup tab-delimited file 'GenomicsDBImport' on your local machine and scp it to KoKo
 # If you have more than 150 samples, break up into 120-sample chunk scripts
