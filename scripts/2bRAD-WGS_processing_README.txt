@@ -450,8 +450,7 @@ zipper.py -a -9 -f rg --launcher -e studivanms@gmail.com
 sbatch zip.slurm
 
 # Create a sample/vcf lookup tab-delimited file 'GenomicsDBImport' on your local machine and scp it to KoKo
-# If you have more than 150 samples, break up into 120-sample chunk scripts
-scp vcfs* mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
+scp vcfs mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
 
 # Create a lookup table of genome scaffolds
 cd ~/db/ofavgenome/
@@ -459,43 +458,19 @@ grep -e ">" Orbicella_faveolata_gen_17.scaffolds.fa | awk 'sub(/^>/, "")' > inte
 mv intervals.list ~/resist/GATK/intervals.list
 cd ~/resist/GATK/
 
-# Create a temp directory in your working directory
-mkdir temp
+# Create a temp directory in your scratch directory
+mkdir ~/scratch/tmp
+
+java -XX:+PrintFlagsFinal -version | grep HeapSize
 
 # Combining first chunk of vcf files into a genomics database
 echo '#!/bin/bash' > combine.sh
 echo 'conda activate GATKenv' >> combine.sh
-echo "gatk --java-options "-Xmx12g" \
-       GenomicsDBImport \
+echo "gatk GenomicsDBImport \
        --genomicsdb-workspace-path ofav_database \
-       --batch-size 50 \
+       --batch-size 25 \
        -L intervals.list \
        --sample-name-map vcfs \
-       --tmp-dir temp" >> combine.sh
+       --tmp-dir /mnt/beegfs/home/mstudiva/scratch/tmp" >> combine.sh
 chmod +x combine.sh
-sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine.sh --mem=0
-
-# Run with all other chunks, adding to the original database
-echo '#!/bin/bash' > combine2.sh
-echo 'conda activate GATKenv' >> combine2.sh
-echo "gatk --java-options "-Xmx12g" \
-       GenomicsDBImport \
-       --genomicsdb-update-workspace-path ofav_database \
-       --batch-size 50 \
-       -L intervals.list \
-       --sample-name-map vcfs2 \
-       --tmp-dir temp" >> combine2.sh
-chmod +x combine2.sh
-sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine2.sh --mem=0
-
-echo '#!/bin/bash' > combine3.sh
-echo 'conda activate GATKenv' >> combine3.sh
-echo "gatk --java-options "-Xmx12g" \
-       GenomicsDBImport \
-       --genomicsdb-update-workspace-path ofav_database \
-       --batch-size 50 \
-       -L intervals.list \
-       --sample-name-map vcfs2 \
-       --tmp-dir temp" >> combine3.sh
-chmod +x combine3.sh
-sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine3.sh --mem=0
+sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine.sh -c epyc7702 --mem=0
