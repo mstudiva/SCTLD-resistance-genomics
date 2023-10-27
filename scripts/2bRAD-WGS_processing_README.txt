@@ -466,11 +466,27 @@ java -XX:+PrintFlagsFinal -version | grep HeapSize
 # Combining first chunk of vcf files into a genomics database
 echo '#!/bin/bash' > combine.sh
 echo 'conda activate GATKenv' >> combine.sh
-echo "gatk GenomicsDBImport \
+echo "gatk --java-options "-XX:ParallelGCThreads=36" \
+       GenomicsDBImport \
        --genomicsdb-workspace-path ofav_database \
        --batch-size 25 \
        -L intervals.list \
-       --sample-name-map vcfs \
+       --sample-name-map vcfs.list \
        --tmp-dir /mnt/beegfs/home/mstudiva/scratch/tmp" >> combine.sh
 chmod +x combine.sh
 sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine.sh -c epyc7702 --mem=0
+
+export GENOME_REF=~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa
+
+
+ls *.vcf > vcfs.list
+
+echo '#!/bin/bash' > vcfs.sh
+echo 'conda activate GATKenv' >> vcfs.sh
+echo "gatk --java-options "-Xmx12g" \
+   CombineGVCFs \
+   -R $GENOME_REF \
+   --variant vcfs.list \
+   -O resist.g.vcf.gz" >> vcfs.sh
+chmod +x vcfs.sh
+sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j vcfs.sh -c epyc7702 --mem=0
