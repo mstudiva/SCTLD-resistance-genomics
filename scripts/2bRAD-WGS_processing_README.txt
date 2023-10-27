@@ -450,7 +450,7 @@ zipper.py -a -9 -f rg --launcher -e studivanms@gmail.com
 sbatch zip.slurm
 
 # Create a sample/vcf lookup tab-delimited file 'GenomicsDBImport' on your local machine and scp it to KoKo
-scp vcfs mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
+scp vcfs.list mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
 
 # Create a lookup table of genome scaffolds
 cd ~/db/ofavgenome/
@@ -461,32 +461,39 @@ cd ~/resist/GATK/
 # Create a temp directory in your scratch directory
 mkdir ~/scratch/tmp
 
+# To determine max heap size (i.e., memory) allocation for java
 java -XX:+PrintFlagsFinal -version | grep HeapSize
+# Rule of thumb to specify ~80% of max value in -Xmx flag below
 
-# Combining first chunk of vcf files into a genomics database
-echo '#!/bin/bash' > combine.sh
-echo 'conda activate GATKenv' >> combine.sh
-echo "gatk --java-options "-XX:ParallelGCThreads=36" \
-       GenomicsDBImport \
-       --genomicsdb-workspace-path ofav_database \
-       --batch-size 25 \
-       -L intervals.list \
-       --sample-name-map vcfs.list \
-       --tmp-dir /mnt/beegfs/home/mstudiva/scratch/tmp" >> combine.sh
-chmod +x combine.sh
-sbatch --partition=longq7 -o combine.o%j -e combine.e%j combine.sh -c epyc7702 --mem=0
-
-export GENOME_REF=~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa
-
-
-ls *.vcf > vcfs.list
-
+# Combining single vcf files into a genomics database
 echo '#!/bin/bash' > vcfs.sh
 echo 'conda activate GATKenv' >> vcfs.sh
-echo "gatk --java-options "-Xmx12g" \
-   CombineGVCFs \
-   -R $GENOME_REF \
-   --variant vcfs.list \
-   -O resist.g.vcf.gz" >> vcfs.sh
+echo "gatk --java-options "-Xmx32g" \
+       GenomicsDBImport \
+       --genomicsdb-workspace-path ofav_database \
+       --batch-size 50 \
+       -L intervals.list \
+       --sample-name-map vcfs.list \
+       --tmp-dir /mnt/beegfs/home/mstudiva/scratch/tmp" >> vcfs.sh
 chmod +x vcfs.sh
-sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j vcfs.sh -c epyc7702 --mem=0
+sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j vcfs.sh -c epyc7702 --mem=0 # -c epyc7702 --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
+
+# For some reason, I cannot get gatk to run on KoKo; keep getting out of memory errors
+# But it is working on my local machine
+# Follow the instructions to install GATK4 and all dependencies locally in ~/bin/: https://github.com/broadinstitute/gatk
+~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
+       GenomicsDBImport \
+       --genomicsdb-workspace-path ofav_database \
+       --batch-size 50 \
+       -L intervals.list \
+       --sample-name-map vcfs.list \
+       --tmp-dir /Volumes/tmp # empty hard drive for temp files
+
+# To add additional samples to the genomicsdb
+~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
+       GenomicsDBImport \
+       --genomicsdb-update-workspace-path ofav_database \
+       --batch-size 50 \
+       -L intervals.list \
+       --sample-name-map vcfs.list \
+       --tmp-dir /Volumes/tmp # empty hard drive for temp files
