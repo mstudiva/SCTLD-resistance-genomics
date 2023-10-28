@@ -495,5 +495,5 @@ sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j vcfs.sh -c epyc7702 --mem=0 # 
        --genomicsdb-update-workspace-path ofav_database \
        --batch-size 50 \
        -L intervals.list \
-       --sample-name-map vcfs.list \
+       --sample-name-map vcfs2.list \
        --tmp-dir /Volumes/tmp # empty hard drive for temp files
