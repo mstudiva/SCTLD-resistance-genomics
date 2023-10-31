@@ -1,4 +1,4 @@
-## WGS reads processing pipeline, version October 24, 2023
+## WGS reads processing pipeline, version October 31, 2023
 # Created by Michael Studivan (studivanms@gmail.com) based on 2bRAD pipeline by Ryan Eckert (reckert2017@fau.edu)
 https://ryaneckert.github.io/Stephanocoenia_FKNMS_PopGen/code/
 
@@ -222,8 +222,7 @@ module load samtools-1.10-gcc-8.3.0-khgksad
 echo '#!/bin/bash' >genomeBuild.sh
 echo bowtie2-build Orbicella_faveolata_gen_17.scaffolds.fa OfaveolataGenome >>genomeBuild.sh
 echo samtools faidx Orbicella_faveolata_gen_17.scaffolds.fa >>genomeBuild.sh
-
-sbatch -o genomeBuild.o%j -e genomeBuild.e%j --mem=200GB genomeBuild.sh
+sbatch -o genomeBuild.o%j -e genomeBuild.e%j genomeBuild.sh
 
 # For GATK (Hard call genotyping) only
 conda activate GATKenv
@@ -234,6 +233,16 @@ cd picard/
 
 cd ~/db/ofavgenome/
 java -jar ~/bin/picard/build/libs/picard.jar CreateSequenceDictionary R=Orbicella_faveolata_gen_17.scaffolds.fa  O=Orbicella_faveolata_gen_17.scaffolds.dict
+
+# Concatenated symbiont genomes
+mkdir ~/db/symGenomes
+# Using concatenated Symbiodiniaceae reference from Ryan Eckert GitHub
+scp symbConcatGenome.fasta mstudiva@koko-login.hpc.fau.edu:~/db/symGenome/
+
+echo '#!/bin/bash' >genomeBuild.sh
+echo bowtie2-build symbConcatGenome.fasta symbConcatGenome >>genomeBuild.sh
+echo samtools faidx symbConcatGenome.fasta >>genomeBuild.sh
+sbatch -o genomeBuild.o%j -e genomeBuild.e%j genomeBuild.sh
 
 
 #------------------------------
@@ -497,3 +506,11 @@ sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j vcfs.sh -c epyc7702 --mem=0 # 
        -L intervals.list \
        --sample-name-map vcfs2.list \
        --tmp-dir /Volumes/tmp # empty hard drive for temp files
+
+
+#------------------------------
+## Symbiont Alignment (2bRAD and WGS separately)
+
+# if your samples are gzipped:
+zipper.py -a -9 -f gz --gunzip --launcher -e studivanms@gmail.com
+sbatch zip.slurm
