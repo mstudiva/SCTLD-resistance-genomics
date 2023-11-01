@@ -31,7 +31,7 @@ chmod +x *.sh *.pl *.py
 ## Creating conda environments for specialized modules
 
 # uncomment and run below if you don't have conda set up
-# module load miniconda3-4.6.14-gcc-8.3.0-eenl5dj
+# module load anaconda3-2021.05-gcc-9.4.0-llhdqho
 # conda config --add channels defaults
 # conda config --add channels bioconda
 # conda config --add channels conda-forge
@@ -447,6 +447,7 @@ cd ~/resist/GATK/
 # Create a temp directory in your scratch directory
 mkdir ~/scratch/tmp
 
+conda activate GATKenv
 # To determine max heap size (i.e., memory) allocation for java
 java -XX:+PrintFlagsFinal -version | grep HeapSize
 # Rule of thumb to specify ~80% of max value in -Xmx flag below
@@ -454,14 +455,13 @@ java -XX:+PrintFlagsFinal -version | grep HeapSize
 # Combining single vcf files into a genomics database
 echo '#!/bin/bash' > vcfs.sh
 echo 'conda activate GATKenv' >> vcfs.sh
-echo "gatk --java-options "-Xmx32g" \
+echo "gatk --java-options "-Xmx12g" \
        GenomicsDBImport \
        --genomicsdb-workspace-path ofav_database \
        --batch-size 50 \
        -L intervals.list \
        --sample-name-map vcfs.list \
        --tmp-dir /mnt/beegfs/home/mstudiva/scratch/tmp" >> vcfs.sh
-chmod +x vcfs.sh
 sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j vcfs.sh -c epyc7702 --mem=0 # -c epyc7702 --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
 
 # For some reason, I cannot get gatk to run on KoKo; keep getting out of memory errors
