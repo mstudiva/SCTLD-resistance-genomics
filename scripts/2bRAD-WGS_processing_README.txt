@@ -4,29 +4,6 @@ https://ryaneckert.github.io/Stephanocoenia_FKNMS_PopGen/code/
 
 
 #------------------------------
-## Modules
-
-# Add to your .bashrc
-module load angsd-0.933-gcc-9.2.0-65d64pp
-module load bayescan-2.1-gcc-8.3.0-7gakqmd
-module load qt-5.15.2-gcc-9.2.0-zi7wcem BayeScEnv/1.1
-module load bcftools-1.9-gcc-8.3.0-il4d373
-module load bowtie2-2.3.5.1-gcc-8.3.0-63cvhw5
-module load cdhit-4.8.1-gcc-8.3.0-bcay75d
-module load htslib-1.9-gcc-8.3.0-jn7ehrc
-module load kraken2-2.1.1-gcc-9.2.0-ocivj3u
-module load python-3.7.4-gcc-8.3.0-3tniqr5
-module load launcher
-module load miniconda3-4.6.14-gcc-8.3.0-eenl5dj
-module load ncbi-toolkit-22_0_0-gcc-9.2.0-jjhd2wa
-module load ngsadmix-32-gcc-8.3.0-qbnwmpq
-module load ngsRelate/v2
-module load R/3.6.1
-module load samtools-1.10-gcc-8.3.0-khgksad
-module load vcftools-0.1.14-gcc-8.3.0-safy5vc
-
-
-#------------------------------
 ## Downloading scripts
 
 cd ~/bin
@@ -509,8 +486,43 @@ sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j vcfs.sh -c epyc7702 --mem=0 # 
 
 
 #------------------------------
-## Symbiont Alignment (2bRAD and WGS separately)
+## Symbiont Alignment (2bRAD)
 
+cd ~/project/directory/filteredReads/symbionts
 # if your samples are gzipped:
 zipper.py -a -9 -f gz --gunzip --launcher -e studivanms@gmail.com
 sbatch zip.slurm
+
+module load bowtie2-2.3.5.1-gcc-8.3.0-63cvhw5
+
+mkdir trash
+SYMGENOME=~/db/symGenomes/symbConcatGenome
+2bRAD_bowtie2_launcher.py -g $SYMGENOME -f .un -n zooxMaps --split -u junk -a zoox --undir trash --launcher -e studivanms@gmail.com
+sbatch zooxMaps.slurm
+
+>zooxAlignmentRates
+for F in `ls *zoox`; do
+M=`grep -E '^[ATGCN]+$' $F | wc -l | grep -f - zooxMaps.e* -A 4 | tail -1 | perl -pe 's/zooxMaps\.e\d+-|% overall alignment rate//g'` ;
+echo "$F.sam $M">>zooxAlignmentRates;
+done
+
+mkdir ../../mappedReads/symbionts
+mv *.sam ../../mappedReads/symbionts
+mv *.zoox ../../mappedReads/symbionts
+cd ../../mappedReads/symbionts
+
+module load samtools-1.10-gcc-8.3.0-khgksad
+
+>s2b
+for file in *.sam; do
+echo "samtools sort -O bam -o ${file/.sam/}.bam $file && samtools index ${file/.sam/}.bam">>s2b;
+done
+
+launcher_creator.py -j s2b -n s2b -t 6:00:00 -N 5 -e studivanms@gmail.com -q shortq7
+sbatch s2b.slurm
+
+>zooxReads
+for i in *.bam; do
+echo $i >>zooxReads;
+samtools idxstats $i | cut -f 1,3 >>zooxReads;
+done
