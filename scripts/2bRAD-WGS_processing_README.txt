@@ -1,4 +1,4 @@
-## WGS reads processing pipeline, version October 31, 2023
+## WGS reads processing pipeline, version November 3, 2023
 # Created by Michael Studivan (studivanms@gmail.com) based on 2bRAD pipeline by Ryan Eckert (reckert2017@fau.edu)
 https://ryaneckert.github.io/Stephanocoenia_FKNMS_PopGen/code/
 
@@ -124,7 +124,7 @@ for file in *.tr0; do
 echo "cutadapt -q 15,15 -m 36 -o ${file/.tr0/}.trim $file > ${file/.tr0/}.trimlog.txt" >> trimse.sh;
 done
 
-# Old-school way of submitting jobs
+# Non-parallel job submission
 sbatch -o trimse.o%j -e trimse.e%j --mem=200GB trimse.sh
 sbatch -o trimse2.o%j -e trimse2.e%j --mem=200GB trimse2.sh
 
@@ -234,11 +234,9 @@ sbatch --mem=200GB maps.slurm
 
 ls *.sam | wc -l
 
-ls *al | cut -d '.' -f 1 >align1
-grep "% overall" maps.e* | cut -d ' ' -f 1 >align2
-paste <(awk -F' ' '{print $1}' align1) <(awk -F' ' '{print $1}' align2) >alignmentRates
-rm align1 align2
-less alignmentRates
+echo '#!/bin/bash' >mappedReads
+echo readCounts.sh -e al -o Host >>mappedReads
+sbatch --mem=200GB mappedReads
 
 >s2b
 for file in *.sam; do
@@ -278,11 +276,9 @@ sbatch maps.slurm
 
 ls *.sam | wc -l
 
-ls *.1.al | cut -d '.' -f 1 >align1
-grep "% overall" maps.e* | cut -d ' ' -f 1 >align2
-paste <(awk -F' ' '{print $1}' align1) <(awk -F' ' '{print $1}' align2) >alignmentRates
-rm align1 align2
-less alignmentRates
+echo '#!/bin/bash' >mappedReads
+echo readCounts.sh -e al -o Host >>mappedReads
+sbatch --mem=200GB mappedReads
 
 >s2b
 for file in *.sam; do
@@ -495,17 +491,19 @@ sbatch zip.slurm
 
 module load bowtie2-2.3.5.1-gcc-8.3.0-63cvhw5
 
+# aligning reads to concatenated symbiont reference; separating out unmapped reads to alignment rates calculations
 mkdir trash
 SYMGENOME=~/db/symGenomes/symbConcatGenome
 2bRAD_bowtie2_launcher.py -g $SYMGENOME -f .un -n zooxMaps --split -u junk -a zoox --undir trash --launcher -e studivanms@gmail.com
 sbatch zooxMaps.slurm
 
->zooxAlignmentRates
-for F in `ls *zoox`; do
-M=`grep -E '^[ATGCN]+$' $F | wc -l | grep -f - zooxMaps.e* -A 4 | tail -1 | perl -pe 's/zooxMaps\.e\d+-|% overall alignment rate//g'` ;
-echo "$F.sam $M">>zooxAlignmentRates;
-done
+# Counting the mapped zoox reads
+# calculate mapping efficiency from these values compared to trimmed reads in Excel
+echo '#!/bin/bash' >mappedZooxReads
+echo readCounts.sh -e zoox -o Zoox >>mappedZooxReads
+sbatch --mem=200GB mappedZooxReads
 
+# some housekeeping
 mkdir ../../mappedReads/symbionts
 mv *.sam ../../mappedReads/symbionts
 mv *.zoox ../../mappedReads/symbionts
@@ -513,14 +511,66 @@ cd ../../mappedReads/symbionts
 
 module load samtools-1.10-gcc-8.3.0-khgksad
 
+# making script to generate indexed sam files
 >s2b
 for file in *.sam; do
 echo "samtools sort -O bam -o ${file/.sam/}.bam $file && samtools index ${file/.sam/}.bam">>s2b;
 done
-
 launcher_creator.py -j s2b -n s2b -t 6:00:00 -N 5 -e studivanms@gmail.com -q shortq7
 sbatch s2b.slurm
 
+# counting the symbiont reads by genera
+>zooxReads
+for i in *.bam; do
+echo $i >>zooxReads;
+samtools idxstats $i | cut -f 1,3 >>zooxReads;
+done
+
+
+#------------------------------
+## Symbiont Alignment (WGS)
+
+cd ~/project/directory/filteredReads/symbionts
+# if your samples are gzipped:
+zipper.py -a -9 -f gz --gunzip --launcher -e studivanms@gmail.com
+sbatch zip.slurm
+
+module load bowtie2-2.3.5.1-gcc-8.3.0-63cvhw5
+
+# aligning reads to concatenated symbiont reference; separating out unmapped reads to alignment rates calculations
+# on a local machine, create a bowtie job script like this:
+# bowtie2 --score-min L,16,1 --local -L 16 -p 2 -x /mnt/beegfs/home/mstudiva/db/symGenomes/symbConcatGenome -1 s001.1.un -2 s001.2.un -S s001.un.bt2.sam --no-unal --al-conc ./s001.zoox --un-conc trash/s001.junk
+# scp to KoKo
+chmod +x bowtieZoox.sh
+
+mkdir trash
+# mapping with --local option, enables clipping of mismatching ends (guards against deletions near ends of RAD tags)
+launcher_creator.py -j bowtieZoox.sh -n zooxMaps -q mediumq7 -t 24:00:00 -e studivanms@gmail.com -N 16
+sbatch zooxMaps.slurm
+
+# Counting the mapped zoox reads
+# calculate mapping efficiency from these values compared to trimmed reads in Excel
+echo '#!/bin/bash' >mappedZooxReads
+echo readCounts.sh -e zoox -o Zoox >>mappedZooxReads
+sbatch --mem=200GB mappedZooxReads
+
+# some housekeeping
+mkdir ../../mappedReads/symbionts
+mv *.sam ../../mappedReads/symbionts
+mv *.zoox ../../mappedReads/symbionts
+cd ../../mappedReads/symbionts
+
+module load samtools-1.10-gcc-8.3.0-khgksad
+
+# making script to generate indexed sam files
+>s2b
+for file in *.sam; do
+echo "samtools sort -O bam -o ${file/.sam/}.bam $file && samtools index ${file/.sam/}.bam">>s2b;
+done
+launcher_creator.py -j s2b -n s2b -t 6:00:00 -N 5 -e studivanms@gmail.com -q shortq7
+sbatch s2b.slurm
+
+# counting the symbiont reads by genera
 >zooxReads
 for i in *.bam; do
 echo $i >>zooxReads;
