@@ -1,0 +1,15 @@
+This is cutadapt 3.4 with Python 3.9.2
+Command line parameters: -q 15,15 -m 36 -o CPR_254.trim CPR_254.tr0
+Processing reads on 1 core in single-end mode ...
+Finished in 9.91 s (7 µs/read; 9.13 M reads/minute).
+
+=== Summary ===
+
+Total reads processed:               1,508,971
+Reads with adapters:                         0 (0.0%)
+Reads that were too short:              21,948 (1.5%)
+Reads written (passing filters):     1,487,023 (98.5%)
+
+Total basepairs processed:    54,322,956 bp
+Quality-trimmed:                  26,919 bp (0.0%)
+Total written (filtered):     53,532,828 bp (98.5%)

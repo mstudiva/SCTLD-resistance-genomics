@@ -497,17 +497,17 @@ SYMGENOME=~/db/symGenomes/symbConcatGenome
 2bRAD_bowtie2_launcher.py -g $SYMGENOME -f .un -n zooxMaps --split -u junk -a zoox --undir trash --launcher -e studivanms@gmail.com
 sbatch zooxMaps.slurm
 
-# Counting the mapped zoox reads
-# calculate mapping efficiency from these values compared to trimmed reads in Excel
-echo '#!/bin/bash' >mappedZooxReads
-echo readCounts.sh -e zoox -o Zoox >>mappedZooxReads
-sbatch --mem=200GB mappedZooxReads
-
 # some housekeeping
 mkdir ../../mappedReads/symbionts
 mv *.sam ../../mappedReads/symbionts
 mv *.zoox ../../mappedReads/symbionts
 cd ../../mappedReads/symbionts
+
+# Counting the mapped zoox reads
+# calculate mapping efficiency from these values compared to trimmed reads in Excel
+echo '#!/bin/bash' >mappedZooxReads
+echo readCounts.sh -e zoox -o Zoox >>mappedZooxReads
+sbatch --mem=200GB mappedZooxReads
 
 module load samtools-1.10-gcc-8.3.0-khgksad
 
@@ -548,17 +548,17 @@ mkdir trash
 launcher_creator.py -j bowtieZoox.sh -n zooxMaps -q mediumq7 -t 24:00:00 -e studivanms@gmail.com -N 16
 sbatch zooxMaps.slurm
 
-# Counting the mapped zoox reads
-# calculate mapping efficiency from these values compared to trimmed reads in Excel
-echo '#!/bin/bash' >mappedZooxReads
-echo readCounts.sh -e zoox -o Zoox >>mappedZooxReads
-sbatch --mem=200GB mappedZooxReads
-
 # some housekeeping
 mkdir ../../mappedReads/symbionts
 mv *.sam ../../mappedReads/symbionts
 mv *.zoox ../../mappedReads/symbionts
 cd ../../mappedReads/symbionts
+
+# Counting the mapped zoox reads
+# calculate mapping efficiency from these values compared to trimmed reads in Excel
+echo '#!/bin/bash' >mappedZooxReads
+echo readCounts.sh -e 1.zoox -o Zoox >>mappedZooxReads
+sbatch --mem=200GB mappedZooxReads
 
 module load samtools-1.10-gcc-8.3.0-khgksad
 
@@ -567,7 +567,7 @@ module load samtools-1.10-gcc-8.3.0-khgksad
 for file in *.sam; do
 echo "samtools sort -O bam -o ${file/.sam/}.bam $file && samtools index ${file/.sam/}.bam">>s2b;
 done
-launcher_creator.py -j s2b -n s2b -t 6:00:00 -N 5 -e studivanms@gmail.com -q shortq7
+launcher_creator.py -j s2b -n s2b -t 6:00:00 -N 10 -e studivanms@gmail.com -q shortq7
 sbatch s2b.slurm
 
 # counting the symbiont reads by genera
