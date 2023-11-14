@@ -480,6 +480,18 @@ sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j vcfs.sh -c epyc7702 --mem=0 # 
        --sample-name-map vcfs2.list \
        --tmp-dir /Volumes/tmp # empty hard drive for temp files
 
+# scp genome assembly and index files to local machine
+scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa .
+scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa.fai .
+scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.dict .
+
+# joint SNP calling across all samples in genomics db
+~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
+      GenotypeGVCFs \
+      -R Orbicella_faveolata_gen_17.scaffolds.fa \
+      -V gendb://ofav_database \
+      -O ofav.vcf.gz
+
 
 #------------------------------
 ## Symbiont Alignment (2bRAD)
