@@ -8,7 +8,7 @@ library(RColorBrewer)
 
 #### WGS data import ####
 
-wgs = read.delim("../WGS/symbionts/zooxReads", header = FALSE, check.names = FALSE)
+wgs = read.delim("../WGS/ZooxReads", header = FALSE, check.names = FALSE)
 
 head(wgs)
 
@@ -82,7 +82,7 @@ ggsave("WGS symbionts.pdf", plot= wgsPlot, width=64, height=4, units="in", dpi=3
 
 #### 2bRAD data import ####
 
-rad = read.delim("../2bRAD/symbionts/zooxReads", header = FALSE, check.names = FALSE)
+rad = read.delim("../2bRAD/ZooxReads", header = FALSE, check.names = FALSE)
 
 head(rad)
 

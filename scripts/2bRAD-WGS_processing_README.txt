@@ -1,6 +1,8 @@
-## WGS reads processing pipeline, version November 3, 2023
+## 2bRAD/WGS reads processing pipeline, version November 15, 2023
 # Created by Michael Studivan (studivanms@gmail.com) based on 2bRAD pipeline by Ryan Eckert (reckert2017@fau.edu)
 https://ryaneckert.github.io/Stephanocoenia_FKNMS_PopGen/code/
+WGS pipeline developped from GATK best practices
+https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
 
 #------------------------------
@@ -69,6 +71,13 @@ chmod +x downloadReads.sh
 launcher_creator.py -b 'srun downloadReads.sh' -n downloadReads -q shortq7 -t 06:00:00 -e studivanms@gmail.com
 sbatch downloadReads.slurm
 
+# Count raw reads
+echo '#!/bin/bash' >rawReads.sh
+echo readCounts.sh -e gz -o Raw >>rawReads.sh
+sbatch -o rawReads.o%j -e rawReads.e%j rawReads.sh --mail-type=ALL --mail-user=studivanms@gmail.com
+# scp RawReadCounts to local machine
+
+
 #------------------------------
 ## WGS reads
 
@@ -87,10 +96,10 @@ sbatch --mem=200GB fastqc.slurm
 # when done, scp .html files to local machine
 
 # Count raw reads (doesn't work when files are gzipped [.gz])
-# echo '#!/bin/bash' >rawReads.sh
-# echo readCounts.sh -e gz -o Raw >>rawReads.sh
-# cat RawReadCounts
-# sbatch -o rawReads.o%j -e rawReads.e%j rawReads.sh --mail-type=ALL --mail-user=studivanms@gmail.com
+echo '#!/bin/bash' >rawReads.sh
+echo readCounts.sh -e gz -o Raw >>rawReads.sh
+sbatch -o rawReads.o%j -e rawReads.e%j rawReads.sh --mail-type=ALL --mail-user=studivanms@gmail.com
+# scp RawReadCounts to local machine
 
 
 #------------------------------
@@ -137,6 +146,8 @@ ls -l *.trim | wc -l
 echo '#!/bin/bash' >cleanReads
 echo readCounts.sh -e trim -o Filt >>cleanReads
 sbatch --mem=200GB cleanReads
+# scp FiltReadCounts to local machine
+
 
 mkdir ../filteredReads
 mv *.trim ../filteredReads
@@ -182,10 +193,11 @@ sbatch --mem=200GB fastqc.slurm
 # when done, scp .html files to local machine
 
 # Counting the trimmed reads (doesn't work when files are gzipped [.gz])
-# echo '#!/bin/bash' >cleanReads
-# echo readCounts.sh -e gz -o Filt >>cleanReads
-# sbatch --mem=200GB cleanReads
-# cat FiltReadCounts
+echo '#!/bin/bash' >cleanReads
+echo readCounts.sh -e gz -o Filt >>cleanReads
+sbatch --mem=200GB cleanReads
+cat FiltReadCounts
+# scp FiltReadCounts to local machine
 
 
 #------------------------------
@@ -223,7 +235,7 @@ sbatch -o genomeBuild.o%j -e genomeBuild.e%j genomeBuild.sh
 
 
 #------------------------------
-## 2bRAD alignment
+## Host alignment (2bRAD)
 
 cd ~/project/directory/2bRAD/filteredReads
 mkdir symbionts
@@ -237,6 +249,7 @@ ls *.sam | wc -l
 echo '#!/bin/bash' >mappedReads
 echo readCounts.sh -e al -o Host >>mappedReads
 sbatch --mem=200GB mappedReads
+# scp HostReadCounts to local machine
 
 >s2b
 for file in *.sam; do
@@ -260,7 +273,7 @@ mv *.al ../mappedReads
 
 
 #------------------------------
-## WGS alignment
+## Host alignment (WGS)
 
 cd ~/project/directory/WGS/filteredReads
 mkdir symbionts
@@ -279,6 +292,7 @@ ls *.sam | wc -l
 echo '#!/bin/bash' >mappedReads
 echo readCounts.sh -e al -o Host >>mappedReads
 sbatch --mem=200GB mappedReads
+# scp HostReadCounts to local machine
 
 >s2b
 for file in *.sam; do
@@ -296,6 +310,105 @@ sbatch zip.slurm
 mkdir ../mappedReads
 mv *.sam.gz ../mappedReads
 mv *.al ../mappedReads
+
+
+#------------------------------
+## Symbiont Alignment (2bRAD)
+
+cd ~/project/directory/filteredReads/symbionts
+# if your samples are gzipped:
+zipper.py -a -9 -f gz --gunzip --launcher -e studivanms@gmail.com
+sbatch zip.slurm
+
+module load bowtie2-2.3.5.1-gcc-8.3.0-63cvhw5
+
+# aligning reads to concatenated symbiont reference; separating out unmapped reads to alignment rates calculations
+mkdir trash
+SYMGENOME=~/db/symGenomes/symbConcatGenome
+2bRAD_bowtie2_launcher.py -g $SYMGENOME -f .un -n zooxMaps --split -u junk -a zoox --undir trash --launcher -e studivanms@gmail.com
+sbatch zooxMaps.slurm
+
+# some housekeeping
+mkdir ../../mappedReads/symbionts
+mv *.sam ../../mappedReads/symbionts
+mv *.zoox ../../mappedReads/symbionts
+cd ../../mappedReads/symbionts
+
+# Counting the mapped zoox reads
+# calculate mapping efficiency from these values compared to trimmed reads in Excel
+echo '#!/bin/bash' >mappedZooxReads
+echo readCounts.sh -e zoox -o Zoox >>mappedZooxReads
+sbatch --mem=200GB mappedZooxReads
+# scp ZooxReadCounts to local machine
+
+module load samtools-1.10-gcc-8.3.0-khgksad
+
+# making script to generate indexed sam files
+>s2b
+for file in *.sam; do
+echo "samtools sort -O bam -o ${file/.sam/}.bam $file && samtools index ${file/.sam/}.bam">>s2b;
+done
+launcher_creator.py -j s2b -n s2b -t 6:00:00 -N 5 -e studivanms@gmail.com -q shortq7
+sbatch s2b.slurm
+
+# counting the symbiont reads by genera
+>ZooxReads
+for i in *.bam; do
+echo $i >>ZooxReads;
+samtools idxstats $i | cut -f 1,3 >>ZooxReads;
+done
+
+
+#------------------------------
+## Symbiont Alignment (WGS)
+
+cd ~/project/directory/filteredReads/symbionts
+# if your samples are gzipped:
+zipper.py -a -9 -f gz --gunzip --launcher -e studivanms@gmail.com
+sbatch zip.slurm
+
+module load bowtie2-2.3.5.1-gcc-8.3.0-63cvhw5
+
+# aligning reads to concatenated symbiont reference; separating out unmapped reads to alignment rates calculations
+# on a local machine, create a bowtie job script like this:
+# bowtie2 --score-min L,16,1 --local -L 16 -p 2 -x /mnt/beegfs/home/mstudiva/db/symGenomes/symbConcatGenome -1 s001.1.un -2 s001.2.un -S s001.un.bt2.sam --no-unal --al-conc ./s001.zoox --un-conc trash/s001.junk
+# scp to KoKo
+chmod +x bowtieZoox.sh
+
+mkdir trash
+# mapping with --local option, enables clipping of mismatching ends (guards against deletions near ends of RAD tags)
+launcher_creator.py -j bowtieZoox.sh -n zooxMaps -q mediumq7 -t 24:00:00 -e studivanms@gmail.com -N 16
+sbatch zooxMaps.slurm
+
+# some housekeeping
+mkdir ../../mappedReads/symbionts
+mv *.sam ../../mappedReads/symbionts
+mv *.zoox ../../mappedReads/symbionts
+cd ../../mappedReads/symbionts
+
+# Counting the mapped zoox reads
+# calculate mapping efficiency from these values compared to trimmed reads in Excel
+echo '#!/bin/bash' >mappedZooxReads
+echo readCounts.sh -e 1.zoox -o Zoox >>mappedZooxReads
+sbatch --mem=200GB mappedZooxReads
+# scp ZooxReadCounts to local machine
+
+module load samtools-1.10-gcc-8.3.0-khgksad
+
+# making script to generate indexed sam files
+>s2b
+for file in *.sam; do
+echo "samtools sort -O bam -o ${file/.sam/}.bam $file && samtools index ${file/.sam/}.bam">>s2b;
+done
+launcher_creator.py -j s2b -n s2b -t 6:00:00 -N 10 -e studivanms@gmail.com -q shortq7
+sbatch s2b.slurm
+
+# counting the symbiont reads by genera
+>ZooxReads
+for i in *.bam; do
+echo $i >>ZooxReads;
+samtools idxstats $i | cut -f 1,3 >>ZooxReads;
+done
 
 
 #------------------------------
@@ -491,100 +604,3 @@ scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.s
       -R Orbicella_faveolata_gen_17.scaffolds.fa \
       -V gendb://ofav_database \
       -O ofav.vcf.gz
-
-
-#------------------------------
-## Symbiont Alignment (2bRAD)
-
-cd ~/project/directory/filteredReads/symbionts
-# if your samples are gzipped:
-zipper.py -a -9 -f gz --gunzip --launcher -e studivanms@gmail.com
-sbatch zip.slurm
-
-module load bowtie2-2.3.5.1-gcc-8.3.0-63cvhw5
-
-# aligning reads to concatenated symbiont reference; separating out unmapped reads to alignment rates calculations
-mkdir trash
-SYMGENOME=~/db/symGenomes/symbConcatGenome
-2bRAD_bowtie2_launcher.py -g $SYMGENOME -f .un -n zooxMaps --split -u junk -a zoox --undir trash --launcher -e studivanms@gmail.com
-sbatch zooxMaps.slurm
-
-# some housekeeping
-mkdir ../../mappedReads/symbionts
-mv *.sam ../../mappedReads/symbionts
-mv *.zoox ../../mappedReads/symbionts
-cd ../../mappedReads/symbionts
-
-# Counting the mapped zoox reads
-# calculate mapping efficiency from these values compared to trimmed reads in Excel
-echo '#!/bin/bash' >mappedZooxReads
-echo readCounts.sh -e zoox -o Zoox >>mappedZooxReads
-sbatch --mem=200GB mappedZooxReads
-
-module load samtools-1.10-gcc-8.3.0-khgksad
-
-# making script to generate indexed sam files
->s2b
-for file in *.sam; do
-echo "samtools sort -O bam -o ${file/.sam/}.bam $file && samtools index ${file/.sam/}.bam">>s2b;
-done
-launcher_creator.py -j s2b -n s2b -t 6:00:00 -N 5 -e studivanms@gmail.com -q shortq7
-sbatch s2b.slurm
-
-# counting the symbiont reads by genera
->zooxReads
-for i in *.bam; do
-echo $i >>zooxReads;
-samtools idxstats $i | cut -f 1,3 >>zooxReads;
-done
-
-
-#------------------------------
-## Symbiont Alignment (WGS)
-
-cd ~/project/directory/filteredReads/symbionts
-# if your samples are gzipped:
-zipper.py -a -9 -f gz --gunzip --launcher -e studivanms@gmail.com
-sbatch zip.slurm
-
-module load bowtie2-2.3.5.1-gcc-8.3.0-63cvhw5
-
-# aligning reads to concatenated symbiont reference; separating out unmapped reads to alignment rates calculations
-# on a local machine, create a bowtie job script like this:
-# bowtie2 --score-min L,16,1 --local -L 16 -p 2 -x /mnt/beegfs/home/mstudiva/db/symGenomes/symbConcatGenome -1 s001.1.un -2 s001.2.un -S s001.un.bt2.sam --no-unal --al-conc ./s001.zoox --un-conc trash/s001.junk
-# scp to KoKo
-chmod +x bowtieZoox.sh
-
-mkdir trash
-# mapping with --local option, enables clipping of mismatching ends (guards against deletions near ends of RAD tags)
-launcher_creator.py -j bowtieZoox.sh -n zooxMaps -q mediumq7 -t 24:00:00 -e studivanms@gmail.com -N 16
-sbatch zooxMaps.slurm
-
-# some housekeeping
-mkdir ../../mappedReads/symbionts
-mv *.sam ../../mappedReads/symbionts
-mv *.zoox ../../mappedReads/symbionts
-cd ../../mappedReads/symbionts
-
-# Counting the mapped zoox reads
-# calculate mapping efficiency from these values compared to trimmed reads in Excel
-echo '#!/bin/bash' >mappedZooxReads
-echo readCounts.sh -e 1.zoox -o Zoox >>mappedZooxReads
-sbatch --mem=200GB mappedZooxReads
-
-module load samtools-1.10-gcc-8.3.0-khgksad
-
-# making script to generate indexed sam files
->s2b
-for file in *.sam; do
-echo "samtools sort -O bam -o ${file/.sam/}.bam $file && samtools index ${file/.sam/}.bam">>s2b;
-done
-launcher_creator.py -j s2b -n s2b -t 6:00:00 -N 10 -e studivanms@gmail.com -q shortq7
-sbatch s2b.slurm
-
-# counting the symbiont reads by genera
->zooxReads
-for i in *.bam; do
-echo $i >>zooxReads;
-samtools idxstats $i | cut -f 1,3 >>zooxReads;
-done
