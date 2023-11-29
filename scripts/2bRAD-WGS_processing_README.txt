@@ -1,7 +1,7 @@
-## 2bRAD/WGS reads processing pipeline, version November 15, 2023
+## 2bRAD/WGS reads processing pipeline, version November 29, 2023
 # Created by Michael Studivan (studivanms@gmail.com) based on 2bRAD pipeline by Ryan Eckert (reckert2017@fau.edu)
 https://ryaneckert.github.io/Stephanocoenia_FKNMS_PopGen/code/
-WGS pipeline developped from GATK best practices
+WGS pipeline developed from GATK best practices
 https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
 
@@ -16,9 +16,6 @@ rm -rf scripts
 wget http://www.cmpg.unibe.ch/software/PGDSpider/PGDSpider_2.0.7.1.zip
 unzip PGDSpider_2.0.7.1.zip
 rm PGDSpider_2.0.7.1.zip
-
-# Makes all bin scripts executable
-chmod +x *.sh *.pl *.py
 
 # Trim Galore (a wrapper of cutadapt and fastQC)
 git clone https://github.com/FelixKrueger/TrimGalore.git
@@ -42,7 +39,7 @@ conda create -n cutadaptenv cutadapt
 conda activate cutadaptenv # this is specifically for cutadapt, which doesn't play well with other KoKo modules
 
 conda create -n GATKenv gatk4 picard openjdk
-conda activate GATKenv # this is specifically for cutadapt, which requires a different version of java than KoKo
+conda activate GATKenv # this is specifically for GATK, which requires a different version of java than KoKo
 
 
 #------------------------------
@@ -412,195 +409,4 @@ done
 
 
 #------------------------------
-## Fuzzy Genotyping (ANGSD; 2bRAD and WGS together)
-
-# If working with WGS and 2bRAD samples together, copy all *.bam* files to a master directory 'ANGSD'
-mkdir project/directory/ANGSD
-mv project/directory/2bRAD/mappedReads/*.bam* .
-mv project/directory/WGS/mappedReads/*.bam* .
-
-ls *bam >bamsClones
-
-module load angsd-0.933-gcc-9.2.0-65d64pp
-
-# ANGSD settings:
-# -minMapQ 20: only highly unique mappings (prob of erroneous mapping =< 1%)
-# -maxDepth: highest total depth (sum over all samples) to assess; set to 10x number of samples
-# -minInd: the minimal number of individuals the site must be genotyped in. Reset to 50% of total N at this stage.
-export FILTERS="-uniqueOnly 1 -remove_bads 1 -minMapQ 20 -maxDepth 3650 -minInd 182"
-export TODO="-doQsDist 1 -doDepth 1 -doCounts 1 -dumpCounts 2"
-
-echo '#!/bin/bash' >ofavDD.sh
-echo angsd -b bamsClones -GL 1 $FILTERS $TODO -P 1 -out dd -nThreads 20 >>ofavDD.sh
-
-sbatch --mem=200GB -o ofavDD.o%j -e ofavDD.e%j --mail-user=studivanms@gmail.com --mail-type=ALL --partition=longq7 ofavDD.sh
-
-module load R/3.6.1
-echo '#!/bin/bash' >RQC.sh
-echo Rscript ~/bin/plotQC.R prefix=dd >>RQC.sh
-echo gzip -9 dd.counts >>RQC.sh
-sbatch -e RQC.e%j -o RQC.o%j --dependency=afterok:460550 --mem=200GB RQC.sh
-
-cat quality.txt
-
-# scp dd.pdf to laptop to look at distribution of base quality scores, fraction of sites in each sample passing coverage thresholds and fraction of sites passing genotyping rates cutoffs. Use these to guide choices of -minQ, -minIndDepth and -minInd filters in subsequent ANGSD runs
-cd local/directory/
-scp mstudiva@koko-login.hpc.fau.edu:~/resist/ANGSD/\*.pdf .
-
-# Clones
-
-module load angsd-0.933-gcc-9.2.0-65d64pp
-
-# change the -minInd flag to 80% of the number of samples you have
-FILTERS="-uniqueOnly 1 -remove_bads 1 -minMapQ 20 -minQ 30 -dosnpstat 1 -doHWE 1 -hwe_pval 1e-5 -sb_pval 1e-5 -hetbias_pval 1e-5 -skipTriallelic 1 -minInd 292 -snp_pval 1e-6 -minMaf 0.05"
-TODO="-doMajorMinor 1 -doMaf 1 -doCounts 1 -makeMatrix 1 -doIBS 1 -doCov 1 -doGeno 8 -doBcf 1 -doPost 1 -doGlf 2"
-
-echo '#!/bin/bash' > ofavClones.sh
-echo angsd -b bamsClones -GL 1 $FILTERS $TODO -P 1 -out ofavClones >>ofavClones.sh
-
-sbatch --mem=200GB -o ofavClones.o%j -e ofavClones.e%j --mail-type=ALL --mail-user=studivanms@gmail.com --partition=longq7 ofavClones.sh
-
-# scp ibs matrix and list of bam files to local machine
-cd local/directory/
-scp mstudiva@koko-login.hpc.fau.edu:~/resist/ANGSD/ofavClones.ibsMat .
-scp mstudiva@koko-login.hpc.fau.edu:~/resist/ANGSD/bamsClones .
-# Next, run 2bRAD clones.R script
-
-
-#------------------------------
-## Hard Genotyping (GATK; 2bRAD and WGS together)
-
-mkdir project/directory/GATK
-mv project/directory/2bRAD/mappedReads/*.bam* .
-mv project/directory/WGS/mappedReads/*.bam* .
-
-# Need to add a read group header to each file before GATK can run
-# Read groups specify which sample a read is assigned to in multiplexed samples
-# on local machine, download bam files to local directory
-git clone https://github.com/djhshih/rgsam.git
-cd rgsam
-make
-make install
-
-# Extracts read group information from bam files using rgsam and puts it in a text file
-cd ~/where/bams/are/
-for F in *.bam; do
-samtools view $F | rgsam collect -s $F -o $F.rg.txt;
-done
-
-# Now adding header into each respective bam file
-for F in *.bam; do
-samtools view -h $F |
-  rgsam tag -r $F.rg.txt |
-  samtools view -b - > $F.rg;
-done
-
-# Double check that read groups are now in your bams
-samtools view -H Sample.bt2.bam.rg | grep '@RG'
-# All good? Now scp back to KoKo
-scp *bam* mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
-
-# Move all original .bam and .bam.bai files elsewhere
-mv *.bam ../
-mv *.bai ../
-
-# Now remaking index files for each .rg
-module load samtools-1.10-gcc-8.3.0-khgksad
-echo '#!/bin/bash' > index.sh
-for F in *.rg; do
-echo "samtools index $F" >> index.sh;
-done
-launcher_creator.py -j index.sh -n index -q shortq7 -t 6:00:00 -e studivanms@gmail.com
-sbatch index.slurm
-
-# Ok, let's do individual variant calls!
-conda activate GATKenv
-export GENOME_REF=~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa
-
-echo '#!/bin/bash' > genos.sh
-echo 'conda activate GATKenv' >> genos.sh
-for F in *.rg; do
-echo "gatk --java-options "-Xmx4g" HaplotypeCaller \
-   -R $GENOME_REF \
-   -ERC GVCF \
-   -I $F\
-   -O $F.vcf" >> genos.sh;
-   done
-launcher_creator.py -j genos.sh -n genos -q mediumq7 -t 24:00:00 -N 16 -e studivanms@gmail.com
-sbatch genos.slurm
-
-# Some files may not be done after 24h - if so:
-# on a local machine
-gsplit -l 3 -d --additional-suffix=.sh genos2.sh genos2
-
-# does not work with launcher_creator, consider breaking up script and running multiple jobs
-chmod +x *.sh
-sbatch --partition=longq7 -o genos2.o%j -e genos2.e%j genos2.sh # run sbatch command with all the other versions of your script
-
-# Now for some housekeeping
-mkdir mappedReads
-mv *.rg *.bai *.txt mappedReads/
-cd mappedReads/
-zipper.py -a -9 -f rg --launcher -e studivanms@gmail.com
-sbatch zip.slurm
-
-# Create a sample/vcf lookup tab-delimited file 'GenomicsDBImport' on your local machine and scp it to KoKo
-scp vcfs.list mstudiva@koko-login.hpc.fau.edu:~/resist/GATK/
-
-# Create a lookup table of genome scaffolds
-cd ~/db/ofavgenome/
-grep -e ">" Orbicella_faveolata_gen_17.scaffolds.fa | awk 'sub(/^>/, "")' > intervals.list
-mv intervals.list ~/resist/GATK/intervals.list
-cd ~/resist/GATK/
-
-# Create a temp directory in your scratch directory
-mkdir ~/scratch/tmp
-
-conda activate GATKenv
-# To determine max heap size (i.e., memory) allocation for java
-java -XX:+PrintFlagsFinal -version | grep HeapSize
-# Rule of thumb to specify ~80% of max value in -Xmx flag below
-
-# Combining single vcf files into a genomics database
-echo '#!/bin/bash' > vcfs.sh
-echo 'conda activate GATKenv' >> vcfs.sh
-echo "gatk --java-options "-Xmx12g" \
-       GenomicsDBImport \
-       --genomicsdb-workspace-path ofav_database \
-       --batch-size 50 \
-       -L intervals.list \
-       --sample-name-map vcfs.list \
-       --tmp-dir /mnt/beegfs/home/mstudiva/scratch/tmp" >> vcfs.sh
-sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j vcfs.sh -c epyc7702 --mem=0 # -c epyc7702 --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
-
-# For some reason, I cannot get gatk to run on KoKo; keep getting out of memory errors
-# But it is working on my local machine
-# Follow the instructions to install GATK4 and all dependencies locally in ~/bin/: https://github.com/broadinstitute/gatk
-~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
-       GenomicsDBImport \
-       --genomicsdb-workspace-path ofav_database \
-       --batch-size 50 \
-       -L intervals.list \
-       --sample-name-map vcfs.list \
-       --tmp-dir /Volumes/tmp # empty hard drive for temp files
-
-# To add additional samples to the genomicsdb
-~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
-       GenomicsDBImport \
-       --genomicsdb-update-workspace-path ofav_database \
-       --batch-size 50 \
-       -L intervals.list \
-       --sample-name-map vcfs2.list \
-       --tmp-dir /Volumes/tmp # empty hard drive for temp files
-
-# scp genome assembly and index files to local machine
-scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa .
-scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa.fai .
-scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.dict .
-
-# joint SNP calling across all samples in genomics db
-~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
-      GenotypeGVCFs \
-      -R Orbicella_faveolata_gen_17.scaffolds.fa \
-      -V gendb://ofav_database \
-      -O ofav.vcf.gz
+# Now proceed with GATK_processing_README or ANGSD_processing_README depending on your data type

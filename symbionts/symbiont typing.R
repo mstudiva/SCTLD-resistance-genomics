@@ -32,7 +32,7 @@ for(i in c(2:20)){
 
 str(wgsMaps)
 
-#collapse fake chromosomes into representativ genera
+#collapse fake chromosomes into representative genera
 wgsMaps$Symbiodinium = rowSums(wgsMaps[2:6])
 wgsMaps$Breviolum = rowSums(wgsMaps[7:10])
 wgsMaps$Cladocopium = rowSums(wgsMaps[11:16])
