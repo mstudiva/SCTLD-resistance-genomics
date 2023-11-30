@@ -231,14 +231,7 @@ zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_fil
 #------------------------------
 ## Assessing raw vs filtered variants
 
-# raw SNPs
-~/bin/gatk-4.4.0.0/gatk VariantsToTable \
-     -R Orbicella_faveolata_gen_17.scaffolds.fa \
-     -V ofav_snp.vcf.gz \
-     -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
-     -O ofav_snp.table
-
-# filtered SNPs
+# SNPs
 ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
      -R Orbicella_faveolata_gen_17.scaffolds.fa \
      -V ofav_snp_filtered.vcf.gz \
@@ -247,14 +240,7 @@ zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_fil
      --show-filtered \
      -F FILTER
 
-# raw indels
-~/bin/gatk-4.4.0.0/gatk VariantsToTable \
-     -R Orbicella_faveolata_gen_17.scaffolds.fa \
-     -V ofav_indel.vcf.gz \
-     -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
-     -O ofav_indel.table
-
-# filtered indels
+# indels
 ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
      -R Orbicella_faveolata_gen_17.scaffolds.fa \
      -V ofav_indel_filtered.vcf.gz \

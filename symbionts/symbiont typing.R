@@ -74,10 +74,16 @@ wgsPlot <- ggplot(wgsPerc, aes(fill=variable, y=value, x=Sample)) +
   scale_fill_manual(values = colorRampPalette(brewer.pal(8, "Accent"))(6)) +
   theme_classic() +
   # geom_text(x = 1.8, y=1.035, label = "Site: F2,21 = 0.9, R2 = 0.085, p = ns") +
-  theme(plot.title = element_text(hjust=0.5), legend.position = "none", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
+  theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
 wgsPlot 
 
 ggsave("WGS symbionts.pdf", plot= wgsPlot, width=64, height=4, units="in", dpi=300, limitsize = F)
+
+# Means by genera
+wgsPerc %>%
+  group_by(variable) %>%
+  dplyr::summarize(Mean = mean(value, na.rm=TRUE)) -> wgsMean
+write.csv(wgsMean, file = "WGS_zoox_means.csv")
 
 
 #### 2bRAD data import ####
@@ -149,8 +155,13 @@ radPlot <- ggplot(radPerc, aes(fill=variable, y=value, x=Sample)) +
   scale_fill_manual(values = colorRampPalette(brewer.pal(8, "Accent"))(6)) +
   theme_classic() +
   # geom_text(x = 1.8, y=1.035, label = "Site: F2,21 = 0.9, R2 = 0.085, p = ns") +
-  theme(plot.title = element_text(hjust=0.5), legend.position = "none", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
+  theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
 radPlot 
 
 ggsave("2bRAD symbionts.pdf", plot= radPlot, width=64, height=4, units="in", dpi=300, limitsize = F)
 
+# Means by genera
+radPerc %>%
+  group_by(variable) %>%
+  dplyr::summarize(Mean = mean(value, na.rm=TRUE)) -> radMean
+write.csv(radMean, file = "2bRAD_zoox_means.csv")
