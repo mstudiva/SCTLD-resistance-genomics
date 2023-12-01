@@ -225,3 +225,9 @@ repsPlot <- ggplot(zooxReps, aes(fill=variable, y=value, x=GenoRep)) +
 repsPlot 
 
 ggsave("Technical replicates.pdf", plot= repsPlot, width=10, height=20, units="in", dpi=300, limitsize = F)
+
+# Means by genera
+zooxReps %>%
+  group_by(PutGeno, variable) %>%
+  dplyr::summarize(Mean = mean(value, na.rm=TRUE)) -> repsMean
+write.csv(repsMean, file = "Rep_zoox_means.csv")
