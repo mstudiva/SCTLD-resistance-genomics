@@ -9,6 +9,7 @@ library(RColorBrewer)
 #### WGS data import ####
 
 wgs = read.delim("../WGS/ZooxReads", header = FALSE, check.names = FALSE)
+genos <- read.csv("genotype_lookup.csv", head=T) # sample id/genotype lookup table
 
 head(wgs)
 
@@ -66,8 +67,12 @@ write.csv(wgsProp, file="WGS_zoox.csv")
 wgsPerc <- reshape2::melt(wgsProp, id = "Sample")
 wgsPerc$variable=factor(wgsPerc$variable, levels=c("Symbiodinium","Breviolum","Cladocopium","Durusdinium")) 
 
+# joining genotype lookup with data
+wgsPerc %>%
+  left_join(genos, by = "Sample") -> wgsPerc
+
 # percent stacked barplot
-wgsPlot <- ggplot(wgsPerc, aes(fill=variable, y=value, x=Sample)) + 
+wgsPlot <- ggplot(wgsPerc, aes(fill=variable, y=value, x=GenoRep)) + 
   geom_bar(position="fill", stat="identity") +
   labs(x = "Sample",
        y = "Relative Abundance",
@@ -75,10 +80,11 @@ wgsPlot <- ggplot(wgsPerc, aes(fill=variable, y=value, x=Sample)) +
        title = "WGS (Experimental Genotypes)") + 
   scale_fill_manual(values = colorRampPalette(brewer.pal(8, "Accent"))(6)) +
   theme_classic() +
+  facet_grid(~PutGeno, scales = "free_x", space = "free") +
   theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
 wgsPlot 
 
-ggsave("WGS symbionts.pdf", plot= wgsPlot, width=64, height=4, units="in", dpi=300, limitsize = F)
+ggsave("WGS symbionts.pdf", plot= wgsPlot, width=100, height=4, units="in", dpi=300, limitsize = F)
 
 # Means by genera
 wgsPerc %>%
@@ -148,8 +154,12 @@ write.csv(radProp, file="2bRAD_zoox.csv")
 radPerc <- reshape2::melt(radProp, id = "Sample")
 radPerc$variable=factor(radPerc$variable, levels=c("Symbiodinium","Breviolum","Cladocopium","Durusdinium")) 
 
+# joining genotype lookup with data
+radPerc %>%
+  left_join(genos, by = "Sample") -> radPerc
+
 # percent stacked barplot
-radPlot <- ggplot(radPerc, aes(fill=variable, y=value, x=Sample)) + 
+radPlot <- ggplot(radPerc, aes(fill=variable, y=value, x=GenoRep)) + 
   geom_bar(position="fill", stat="identity") +
   labs(x = "Sample",
        y = "Relative Abundance",
@@ -157,10 +167,11 @@ radPlot <- ggplot(radPerc, aes(fill=variable, y=value, x=Sample)) +
        title = "2bRAD (Experimental Genotypes)") + 
   scale_fill_manual(values = colorRampPalette(brewer.pal(8, "Accent"))(6)) +
   theme_classic() +
+  facet_grid(~PutGeno, scales = "free_x", space = "free") +
   theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
 radPlot 
 
-ggsave("2bRAD symbionts.pdf", plot= radPlot, width=64, height=4, units="in", dpi=300, limitsize = F)
+ggsave("2bRAD symbionts.pdf", plot= radPlot, width=100, height=4, units="in", dpi=300, limitsize = F)
 
 # Means by genera
 radPerc %>%
@@ -171,11 +182,7 @@ write.csv(radMean, file = "2bRAD_zoox_means.csv")
 
 #### combined genotypes ####
 
-genos <- read.csv("genotype_lookup.csv", head=T)
-
 zooxPerc <- rbind (wgsPerc, radPerc)
-zooxPerc %>%
-  left_join(genos, by = "Sample") -> zooxPerc
 
 # percent stacked barplot
 zooxPlot <- ggplot(zooxPerc, aes(fill=variable, y=value, x=GenoRep)) + 
@@ -190,7 +197,13 @@ zooxPlot <- ggplot(zooxPerc, aes(fill=variable, y=value, x=GenoRep)) +
   theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
 zooxPlot 
 
-ggsave("All symbionts.pdf", plot= zooxPlot, width=172, height=4, units="in", dpi=300, limitsize = F)
+ggsave("All symbionts.pdf", plot= zooxPlot, width=200, height=4, units="in", dpi=300, limitsize = F)
+
+# Means by genera
+zooxPerc %>%
+  group_by(variable) %>%
+  dplyr::summarize(Mean = mean(value, na.rm=TRUE)) -> zooxMean
+write.csv(zooxMean, file = "All_zoox_means.csv")
 
 
 #### technical replicates ####
@@ -207,8 +220,8 @@ repsPlot <- ggplot(zooxReps, aes(fill=variable, y=value, x=GenoRep)) +
        title = "Technical Replicates") + 
   scale_fill_manual(values = colorRampPalette(brewer.pal(8, "Accent"))(6)) +
   theme_classic() +
-  facet_grid(~PutGeno, scales = "free_x", space = "free") +
+  facet_wrap(~PutGeno, scales = "free_x", ncol=5) +
   theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
 repsPlot 
 
-ggsave("Technical replicates.pdf", plot= repsPlot, width=64, height=4, units="in", dpi=300, limitsize = F)
+ggsave("Technical replicates.pdf", plot= repsPlot, width=10, height=20, units="in", dpi=300, limitsize = F)
