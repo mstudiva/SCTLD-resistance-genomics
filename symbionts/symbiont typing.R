@@ -80,11 +80,11 @@ wgsPlot <- ggplot(wgsPerc, aes(fill=variable, y=value, x=GenoRep)) +
        title = "WGS (Experimental Genotypes)") + 
   scale_fill_manual(values = colorRampPalette(brewer.pal(8, "Accent"))(6)) +
   theme_classic() +
-  facet_grid(~PutGeno, scales = "free_x", space = "free") +
-  theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
+  facet_wrap(~PutGeno, scales = "free_x", ncol=25) +
+  theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank())
 wgsPlot 
 
-ggsave("WGS symbionts.pdf", plot= wgsPlot, width=100, height=4, units="in", dpi=300, limitsize = F)
+ggsave("WGS symbionts.pdf", plot= wgsPlot, width=30, height=20, units="in", dpi=300, limitsize = F)
 
 # Means by genera
 wgsPerc %>%
@@ -167,11 +167,11 @@ radPlot <- ggplot(radPerc, aes(fill=variable, y=value, x=GenoRep)) +
        title = "2bRAD (Experimental Genotypes)") + 
   scale_fill_manual(values = colorRampPalette(brewer.pal(8, "Accent"))(6)) +
   theme_classic() +
-  facet_grid(~PutGeno, scales = "free_x", space = "free") +
-  theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
+  facet_wrap(~PutGeno, scales = "free_x", ncol=25) +
+  theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank())
 radPlot 
 
-ggsave("2bRAD symbionts.pdf", plot= radPlot, width=100, height=4, units="in", dpi=300, limitsize = F)
+ggsave("2bRAD symbionts.pdf", plot= radPlot, width=30, height=20, units="in", dpi=300, limitsize = F)
 
 # Means by genera
 radPerc %>%
@@ -193,11 +193,11 @@ zooxPlot <- ggplot(zooxPerc, aes(fill=variable, y=value, x=GenoRep)) +
        title = "All Genotypes") + 
   scale_fill_manual(values = colorRampPalette(brewer.pal(8, "Accent"))(6)) +
   theme_classic() +
-  facet_grid(~PutGeno, scales = "free_x", space = "free") +
-  theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
+  facet_wrap(~PutGeno, scales = "free_x", ncol=25) +
+  theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank(), axis.text.x = element_blank())
 zooxPlot 
 
-ggsave("All symbionts.pdf", plot= zooxPlot, width=200, height=4, units="in", dpi=300, limitsize = F)
+ggsave("All symbionts.pdf", plot= zooxPlot, width=30, height=40, units="in", dpi=300, limitsize = F)
 
 # Means by genera
 zooxPerc %>%
@@ -220,11 +220,11 @@ repsPlot <- ggplot(zooxReps, aes(fill=variable, y=value, x=GenoRep)) +
        title = "Technical Replicates") + 
   scale_fill_manual(values = colorRampPalette(brewer.pal(8, "Accent"))(6)) +
   theme_classic() +
-  facet_wrap(~PutGeno, scales = "free_x", ncol=5) +
+  facet_wrap(~PutGeno, scales = "free_x", ncol=6) +
   theme(plot.title = element_text(hjust=0.5), legend.position = "bottom", axis.title.y = element_blank(), axis.text.y = element_blank(), axis.title.x = element_blank())
 repsPlot 
 
-ggsave("Technical replicates.pdf", plot= repsPlot, width=10, height=20, units="in", dpi=300, limitsize = F)
+ggsave("Technical replicate symbionts.pdf", plot= repsPlot, width=10, height=15, units="in", dpi=300, limitsize = F)
 
 # Means by genera
 zooxReps %>%
