@@ -1,4 +1,4 @@
-## Genome Analysis ToolKit (GATK) pipeline, version November 29, 2023
+## Genome Analysis ToolKit (GATK) pipeline, version December 1, 2023
 # Created by Michael Studivan (studivanms@gmail.com) based on GATK best practices
 https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
@@ -231,7 +231,7 @@ zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_fil
 #------------------------------
 ## Assessing raw vs filtered variants
 
-# SNPs
+# filtered SNPs (includes those that failed filters)
 ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
      -R Orbicella_faveolata_gen_17.scaffolds.fa \
      -V ofav_snp_filtered.vcf.gz \
@@ -240,7 +240,7 @@ zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_fil
      --show-filtered \
      -F FILTER
 
-# indels
+# filtered indels (includes those that failed filters)
 ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
      -R Orbicella_faveolata_gen_17.scaffolds.fa \
      -V ofav_indel_filtered.vcf.gz \
@@ -248,6 +248,20 @@ zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_fil
      -O ofav_indel_filtered.table \
      --show-filtered \
      -F FILTER
+
+# passing SNPs (excludes those that failed filters)
+~/bin/gatk-4.4.0.0/gatk VariantsToTable \
+     -R Orbicella_faveolata_gen_17.scaffolds.fa \
+     -V ofav_snp_filtered.vcf.gz \
+     -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
+     -O ofav_snp_passing.table
+
+# passing indels (excludes those that failed filters)
+~/bin/gatk-4.4.0.0/gatk VariantsToTable \
+     -R Orbicella_faveolata_gen_17.scaffolds.fa \
+     -V ofav_indel_filtered.vcf.gz \
+     -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
+     -O ofav_indel_passing.table
 
 # Now, use the R script GATK_filter.R to visualize the results of the filtering
 
