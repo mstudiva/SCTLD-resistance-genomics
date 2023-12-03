@@ -17,6 +17,12 @@ VCF_filtered %>%
 snp_filtered$Pass <- factor(snp_filtered$FILTER == "PASS")
 indel_filtered$Pass <- factor(indel_filtered$FILTER == "PASS")
 
+snp_filtered %>%
+  filter(FILTER == "PASS") -> snp_passing
+
+indel_filtered %>%
+  filter(FILTER == "PASS") -> indel_passing
+
 
 #### Raw variants ####
 
@@ -165,6 +171,31 @@ pdf("Ofav_indel_passfail.pdf", height=15, width=15)
 theme_set(theme_gray(base_size = 18))
 grid.arrange(DP_indel_passfail, FS_indel_passfail, QD_indel_passfail, QD_indel_passfail_ylim, ReadPosRankSum_indel_passfail, ReadPosRankSum_indel_passfail_xlim, nrow=3)
 dev.off()
+
+
+#### Filter validation ####
+
+# Just a sanity check to make sure all the filters performed as intended
+# Each line below should return a value of 0
+# If not, rerun the filtering with the filters in a different order
+
+# SNPs
+sum(na.omit(snp_passing$QD) < 2) # 0
+sum(na.omit(snp_passing$QUAL) < 30) # 0
+sum(na.omit(snp_passing$SOR) > 3) # 0
+sum(na.omit(snp_passing$FS) > 60) # 0
+sum(na.omit(snp_passing$MQ) < 40) # 0
+sum(na.omit(snp_passing$MQRankSum) < -12.5) # 0
+sum(na.omit(snp_passing$ReadPosRankSum) < -8) # 0
+
+# Indels
+sum(na.omit(indel_passing$QD) < 2) # 0
+sum(na.omit(indel_passing$QUAL) < 30) # 0
+sum(na.omit(indel_passing$FS) > 200) # 0
+sum(na.omit(indel_passing$ReadPosRankSum) < -20) # 0
+
+
+#### Filter modification ####
 
 # All things considered, the default filtering thresholds recommended by GATK best practices (https://gatk.broadinstitute.org/hc/en-us/articles/360035531112--How-to-Filter-variants-either-with-VQSR-or-by-hard-filtering#2)
 # seem to do an adequate job removing low-confidence variants, while still retaining high-quality
