@@ -1,4 +1,4 @@
-## Genome Analysis ToolKit (GATK) pipeline, version December 1, 2023
+## Genome Analysis ToolKit (GATK) pipeline, version December 3, 2023
 # Created by Michael Studivan (studivanms@gmail.com) based on GATK best practices
 https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
@@ -264,6 +264,7 @@ zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_fil
      -O ofav_indel_passing.table
 
 # Now, use the R script GATK_filter.R to visualize the results of the filtering
+# Once done, either adjust the filtering thresholds above based on your data, or proceed below
 
 
 #------------------------------
@@ -278,4 +279,47 @@ java -jar ~/bin/picard/build/libs/picard.jar SortVcf \
 ~/bin/gatk-4.4.0.0/gatk SelectVariants \
      --variant ofav_filtered.vcf.gz \
      --exclude-filtered \
-     --output ofav_filtered_pass.vcf.gz
+     --output ofav_passing.vcf.gz
+
+
+#------------------------------
+## Creating identical by state (IBS) matrix for phylogenetic trees and further analysis
+# Thanks to ChatGPT for this bit!
+
+# scp ofav_passing.vcf.gz to KoKo in a new directory named vcf
+scp ofav_passing.vcf.gz mstudiva@koko-login.hpc.fau.edu:~/resist/vcf/
+# scp two column text file of genome scaffold IDs to a simple numeric
+scp scaffolds_rename.txt mstudiva@koko-login.hpc.fau.edu:~/resist/vcf/
+
+# Back on KoKo again
+module load bcftools-1.9-gcc-8.3.0-gjzr3wl
+module load vcftools-0.1.14-gcc-8.3.0-safy5vc
+module load plink-1.07-gcc-8.3.0-azf4a6i
+
+# indexes the vcf file for faster processing
+echo '#!/bin/sh' > index.sh
+echo 'module load bcftools-1.9-gcc-8.3.0-gjzr3wl' >> index.sh
+echo 'bcftools index ofav_passing.vcf.gz' >> index.sh
+chmod +x *.sh
+sbatch --partition=mediumq7 -o index.o%j -e index.e%j index.sh
+
+# replaces genome scaffold IDs with a simple numeric (remove 'ofavscaf_')
+echo '#!/bin/sh' > rename.sh
+echo 'module load bcftools-1.9-gcc-8.3.0-gjzr3wl' >> rename.sh
+echo 'bcftools annotate --rename-chrs scaffolds_rename.txt ofav_passing.vcf.gz -Oz -o ofav_passing_renamed.vcf.gz' >> rename.sh
+chmod +x *.sh
+sbatch --partition=mediumq7 -o rename.o%j -e rename.e%j rename.sh
+
+# convert vcf to plink data format
+echo '#!/bin/sh' > plink.sh
+echo 'module load vcftools-0.1.14-gcc-8.3.0-safy5vc' >> plink.sh
+echo 'vcftools --gzvcf ofav_passing_renamed.vcf.gz --plink --out ofav_passing' >> plink.sh
+chmod +x *.sh
+sbatch --partition=mediumq7 -o plink.o%j -e plink.e%j plink.sh
+
+# calculate IBS matrix using PLINK
+echo '#!/bin/sh' > ibs.sh
+echo 'module load plink-1.07-gcc-8.3.0-azf4a6i' >> ibs.sh
+echo 'plink --file ofav_passing --cluster --matrix --out ofav_passing_ibs' >> ibs.sh
+chmod +x *.sh
+sbatch --partition=mediumq7 -o ibs.o%j -e ibs.e%j ibs.sh
