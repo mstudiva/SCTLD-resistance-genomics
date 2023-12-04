@@ -289,14 +289,16 @@ java -jar ~/bin/picard/build/libs/picard.jar SortVcf \
 # Install dependencies
 brew install bcftools
 brew install vcftools
-# Download plink2 from https://www.cog-genomics.org/plink/2.0/, put it in your working directory, then right click and open to allow run access
+# Download plink from https://www.cog-genomics.org/plink/1.9/, put it in your working directory, then right click and open to allow run access
 
 # converting any multiallelic variants into biallelic variants
 bcftools norm -m-any ofav_passing.vcf.gz -o ofav_passing_split.vcf.gz
 
 # convert vcf to plink data format with vcftools
-vcftools --gzvcf ofav_passing.vcf.gz --plink --out ofav_passing --allow-extra-chr
+./plink --vcf ofav_passing_split.vcf.gz --make-bed --out ofav_passing --allow-extra-chr
 
+# calculate IBS matrix using plink2
+./plink --bfile ofav_passing --distance ibs square --out ofav_ibsmatrix --allow-extra-chr
 
 
 # NOT USED
