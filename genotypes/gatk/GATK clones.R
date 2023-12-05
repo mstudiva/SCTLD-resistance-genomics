@@ -2,15 +2,16 @@ if (!require("pacman")) install.packages("pacman")
 
 pacman::p_load("dendextend", "ggdendro", "tidyverse")
 
-cloneBams = read.csv("bamsClones.csv", head=F) # list of bam files
+cloneBams = read.csv("bamsClones.csv", head=T) # list of bam files
 
 cloneMa = as.matrix(read.table("ofavClones.ibsMat")) # reads in IBS matrix produced by ANGSD 
 
 dimnames(cloneMa) = list(cloneBams[,1],cloneBams[,1])
 clonesHc = hclust(as.dist(cloneMa),"ave")
 
-# clonePops = cloneBams$region
-# cloneDepth = cloneBams$depthZone
+cloneGeno = cloneBams$PutGeno
+cloneReps = cloneBams$GenoRep
+cloneSeq = cloneBams$Seq
 
 cloneDend = cloneMa %>% as.dist() %>% hclust(.,"ave") %>% as.dendrogram()
 cloneDData = cloneDend %>% dendro_data()
@@ -22,21 +23,23 @@ for(i in 1:nrow(cloneDData$segments)) {
     cloneDData$segments$yend2[i] = (cloneDData$segments$y[i] - 0.01)}}
 
 cloneDendPoints = cloneDData$labels
-# cloneDendPoints$pop = clonePops[order.dendrogram(cloneDend)]
-# cloneDendPoints$depth=cloneDepth[order.dendrogram(cloneDend)]
-rownames(cloneDendPoints) = cloneDendPoints$label
+cloneDendPoints$geno = cloneGeno[order.dendrogram(cloneDend)]
+cloneDendPoints$reps=cloneReps[order.dendrogram(cloneDend)]
+cloneDendPoints$seq=cloneSeq[order.dendrogram(cloneDend)]
+rownames(cloneDendPoints) = cloneDendPoints$reps
 
 # Making points at the leaves to place symbols for populations
-# point = as.vector(NA)
-# for(i in 1:nrow(cloneDData$segments)) {
-#   if (cloneDData$segments$yend[i] == 0) {
-#     point[i] = cloneDData$segments$y[i] - 0.01
-#   } else {
-#     point[i] = NA}}
+point = as.vector(NA)
+for(i in 1:nrow(cloneDData$segments)) {
+  if (cloneDData$segments$yend[i] == 0) {
+    point[i] = cloneDData$segments$y[i] - 0.01
+  } else {
+    point[i] = NA}}
 
-# cloneDendPoints$y = point[!is.na(point)]
+cloneDendPoints$y = point[!is.na(point)]
 
-techReps = c("CPR_210_2.trim.bt2.bam", "CPR_210_3.trim.bt2.bam", "CPR_210.trim.bt2.bam", "CPR_226_2.trim.bt2.bam", "CPR_226_3.trim.bt2.bam", "CPR_226.trim.bt2.bam", "CPR_375_2.trim.bt2.bam", "CPR_375_3.trim.bt2.bam", "CPR_375.trim.bt2.bam", "CPR_376_2.trim.bt2.bam", "CPR_376_3.trim.bt2.bam", "CPR_376.trim.bt2.bam", "CPR_sperm_2.trim.bt2.bam", "CPR_sperm_3.trim.bt2.bam", "CPR_sperm.trim.bt2.bam")
+techReps <- c(read.csv("techReps.csv", head = F))
+# techReps = c("CPR_210_2.trim.bt2.bam", "CPR_210_3.trim.bt2.bam", "CPR_210.trim.bt2.bam", "CPR_226_2.trim.bt2.bam", "CPR_226_3.trim.bt2.bam", "CPR_226.trim.bt2.bam", "CPR_375_2.trim.bt2.bam", "CPR_375_3.trim.bt2.bam", "CPR_375.trim.bt2.bam", "CPR_376_2.trim.bt2.bam", "CPR_376_3.trim.bt2.bam", "CPR_376.trim.bt2.bam", "CPR_sperm_2.trim.bt2.bam", "CPR_sperm_3.trim.bt2.bam", "CPR_sperm.trim.bt2.bam")
 # cloneDendPoints$depth = factor(cloneDendPoints$depth,levels(cloneDendPoints$depth)[c(2,1)])
 
 # cloneDendPoints$pop = factor(cloneDendPoints$pop,levels(cloneDendPoints$pop)[c(4, 1, 3, 2)])
@@ -46,12 +49,12 @@ techReps = c("CPR_210_2.trim.bt2.bam", "CPR_210_3.trim.bt2.bam", "CPR_210.trim.b
 cloneDendA = ggplot() +
   geom_segment(data = segment(cloneDData), aes(x = x, y = y, xend = xend, yend = yend2), size = 0.5) +
   # geom_point(data = cloneDendPoints, aes(x = x, y = y), size = 4, stroke = 0.25) +
-  #scale_fill_brewer(palette = "Dark2", name = "Population") +
+  # scale_fill_brewer(palette = "Dark2", name = seq) +
   # scale_fill_manual(values = flPal, name= "Population")+
-  # scale_shape_manual(values = c(24, 25), name = "Depth Zone")+
-  geom_hline(yintercept = 0.12, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold
-  geom_text(data = subset(cloneDendPoints, subset = label %in% techReps), aes(x = x, y = (y - .015), label = label), angle = 90) + # spacing technical replicates further from leaf
-  geom_text(data = subset(cloneDendPoints, subset = !label %in% techReps), aes(x = x, y = (y - .010), label = label), angle = 90) +
+  # scale_shape_manual(values = c(1, 25), name = seq)+
+  # geom_hline(yintercept = 0.12, color = "red", lty = 5, linewidth = 0.75) + # creating a dashed line to indicate a clonal distance threshold
+  geom_text(data = subset(cloneDendPoints, subset = reps %in% techReps), aes(x = x, y = (y - 0.01), label = geno), angle = 90) + # spacing technical replicates further from leaf
+  geom_text(data = subset(cloneDendPoints, subset = !reps %in% techReps), aes(x = x, y = (y - .015), label = reps), angle = 90) +
   labs(y = "Genetic distance (1 - IBS)") +
   guides(fill = guide_legend(override.aes = list(shape = 22)))+
   theme_classic()
@@ -76,5 +79,4 @@ cloneDend = cloneDendA + theme(
 
 cloneDend
 
-ggsave("cloneDend.pdf", plot = cloneDend, height = 18, width = 35, units = "in", dpi = 300)
-# ggsave("../figures/cloneDend.eps", plot = cloneDend, height = 8, width = 35, units = "in", dpi = 300)
+ggsave("cloneDend.pdf", plot = cloneDend, height = 7, width = 49, units = "in", dpi = 300)
