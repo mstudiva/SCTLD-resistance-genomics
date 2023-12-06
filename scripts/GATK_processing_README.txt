@@ -1,4 +1,4 @@
-## Genome Analysis ToolKit (GATK) pipeline, version December 4, 2023
+## Genome Analysis ToolKit (GATK) pipeline, version December 6, 2023
 # Created by Michael Studivan (studivanms@gmail.com) based on GATK best practices
 https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
@@ -167,7 +167,7 @@ scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.s
 # GATK recommends using Variant Quality Score Recalibration (VQSR), but this tool requires 'truth' and 'training' datasets for the machine learning algorithm
 # These resources do not exist for non-model organisms, so we will use hard-filtering instead (applying a standardized threshold for good SNPs)
 
-# First separating SNPs and indels
+# First separating SNPs from indels
 ~/bin/gatk-4.4.0.0/gatk SelectVariants \
       --variant ofav.vcf.gz \
       --select-type SNP \
@@ -183,12 +183,10 @@ launcher_creator.py -j snps.sh -n snps -q shortq7 -t 6:00:00 -e studivanms@gmail
 sbatch snps.slurm
 # This took nearly 3x as long on KoKo as it did on my local machine
 
-~/bin/gatk-4.4.0.0/gatk SelectVariants \
+# ~/bin/gatk-4.4.0.0/gatk SelectVariants \
       --variant ofav.vcf.gz \
       --select-type INDEL \
       --output ofav_indel.vcf.gz
-
-# Now running filtering for SNPs and indels separately
 
 # SNP filtering
 # Filters based on GATK recommendations: https://gatk.broadinstitute.org/hc/en-us/articles/360035531112--How-to-Filter-variants-either-with-VQSR-or-by-hard-filtering#2
@@ -212,7 +210,7 @@ zgrep -v "^#" ofav_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > snp_filtere
 
 # Indel filtering
 # Filters based on GATK recommendations: https://gatk.broadinstitute.org/hc/en-us/articles/360035531112--How-to-Filter-variants-either-with-VQSR-or-by-hard-filtering#2
-~/bin/gatk-4.4.0.0/gatk VariantFiltration \
+# ~/bin/gatk-4.4.0.0/gatk VariantFiltration \
       -R Orbicella_faveolata_gen_17.scaffolds.fa \
       -V ofav_indel.vcf.gz \
       -O ofav_indel_filtered.vcf.gz \
@@ -222,10 +220,10 @@ zgrep -v "^#" ofav_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > snp_filtere
       --filter-expression "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20"
 
 # Make sure the number of variants is the same between the original and filtered vcf files (should be the same)
-zgrep -v "^#" ofav_indel.vcf.gz | wc -l                                                     # 3340789
-zgrep -v "^#" ofav_indel_filtered.vcf.gz | wc -l                                            # 3340789
+# zgrep -v "^#" ofav_indel.vcf.gz | wc -l                                                     # 3340789
+# zgrep -v "^#" ofav_indel_filtered.vcf.gz | wc -l                                            # 3340789
 # But when we sort by variants passing filter
-zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_filtered.txt   # 3249070 PASS
+# zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_filtered.txt   # 3249070 PASS
 
 
 #------------------------------
@@ -241,7 +239,7 @@ zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_fil
      -F FILTER
 
 # filtered indels (includes those that failed filters)
-~/bin/gatk-4.4.0.0/gatk VariantsToTable \
+# ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
      -R Orbicella_faveolata_gen_17.scaffolds.fa \
      -V ofav_indel_filtered.vcf.gz \
      -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
@@ -257,7 +255,7 @@ zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_fil
      -O ofav_snp_passing.table
 
 # passing indels (excludes those that failed filters)
-~/bin/gatk-4.4.0.0/gatk VariantsToTable \
+# ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
      -R Orbicella_faveolata_gen_17.scaffolds.fa \
      -V ofav_indel_filtered.vcf.gz \
      -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
@@ -270,16 +268,22 @@ zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_fil
 #------------------------------
 ## Merging SNPs and indels
 
-java -jar ~/bin/picard/build/libs/picard.jar SortVcf \
+# java -jar ~/bin/picard/build/libs/picard.jar SortVcf \
      I=ofav_snp_filtered.vcf.gz \
      I=ofav_indel_filtered.vcf.gz \
      O=ofav_filtered.vcf.gz
 
 # Creating a vcf of just variants passing filter
-~/bin/gatk-4.4.0.0/gatk SelectVariants \
+# ~/bin/gatk-4.4.0.0/gatk SelectVariants \
      --variant ofav_filtered.vcf.gz \
      --exclude-filtered \
      --output ofav_passing.vcf.gz
+
+# Creating a vcf of just SNPs passing filter
+~/bin/gatk-4.4.0.0/gatk SelectVariants \
+    --variant ofav_snp_filtered.vcf.gz \
+    --exclude-filtered \
+    --output ofav_snp_passing.vcf.gz
 
 
 #------------------------------
@@ -292,28 +296,19 @@ brew install vcftools
 # Download plink from https://www.cog-genomics.org/plink/1.9/, put it in your working directory, then right click and open to allow run access
 
 # converting any multiallelic variants into biallelic variants
-bcftools norm -m-any ofav_passing.vcf.gz -o ofav_passing_split.vcf.gz
+# bcftools norm -m-any ofav_passing.vcf.gz -o ofav_passing_split.vcf.gz
 
 # convert vcf to plink data format with vcftools
-./plink --vcf ofav_passing_split.vcf.gz --make-bed --out ofav_passing --allow-extra-chr
+# ./plink --vcf ofav_passing_split.vcf.gz --make-bed --out ofav_passing --allow-extra-chr
+./plink --vcf ofav_snp_passing.vcf.gz --make-bed --out ofav_snp_passing --allow-extra-chr --double-id
+
+# confirm that sample IDs match between the vcf and plink files
+bcftools query -l ofav_passing.vcf.gz # prints all names
+bcftools query -l ofav_passing.vcf.gz | wc -l # counts the number, in this case, 365
+# run plink_sampleIDs.py for plink sample IDs
+python plink_sampleIDs.py # prints all names
+python plink_sampleIDs.py | wc -l # 365
 
 # calculate IBS matrix using plink2
-./plink --bfile ofav_passing --distance ibs square --out ofav_ibsmatrix --allow-extra-chr
-
-
-# NOT USED
-# indexes the vcf file for faster processing with bcftools
-bcftools index ofav_passing.vcf.gz
-
-# then create two column text file of genome scaffold IDs to a simple numeric named scaffolds_rename.txt before running the next step
-# replaces genome scaffold IDs with a simple numeric (remove 'ofavscaf_')
-bcftools annotate --rename-chrs scaffolds_rename.txt ofav_passing.vcf.gz -Oz -o ofav_passing_renamed.vcf.gz
-
-# re-index the scaffold-renamed vcf file for faster processing
-bcftools index ofav_passing_renamed.vcf.gz
-
-# convert vcf to plink data format with plink2
-./plink2 --vcf ofav_passing_renamed.vcf.gz --make-bed --out ofav_passing
-
-# calculate IBS matrix using plink2
-./plink2 --vcf ofav_passing_renamed.vcf.gz --distance ibs square gz --out ofav_ibs
+# ./plink --bfile ofav_passing --distance ibs square --out ofav_ibsmatrix --allow-extra-chr
+./plink --bfile ofav_snp_passing --distance ibs square --out ofav_snp_ibsmatrix --allow-extra-chr
