@@ -1,22 +1,53 @@
+#### IBS matrix ####
+
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#   install.packages("BiocManager")
+# BiocManager::install("SNPRelate")
+library(SNPRelate)
+library(gdsfmt)
+
+# Install VariantAnnotation package if not installed
+# BiocManager::install("VariantAnnotation")
+library(VariantAnnotation)
+
+# Install vcfR package if not installed
+# BiocManager::install("vcfR")
+library(vcfR)
+
+# Replace 'your_data.vcf.gz' with your actual VCF file name
+vcf <- read.vcfR("ofav_2brad_snp_passing.vcf.gz") # 2bRAD only
+# vcf <- read.vcfR("ofav_snp_passing.vcf.gz") # WGS and 2bRAD
+
+# Convert vcf to GDS
+geno <- extract.gt(vcf, as.numeric = T)
+snpgdsCreateGeno("ofav_2brad_snp_passing.gds", geno) # 2bRAD only
+# snpgdsCreateGeno("ofav_snp_passing.gds", geno) # WGS and 2bRAD
+
+# Creating IBS matrix
+genofile<-snpgdsOpen("ofav_2brad_snp_passing.gds") # 2bRAD only
+# genofile<-snpgdsOpen("ofav_snp_passing.gds") # WGS and 2bRAD
+set.seed(100)
+ibs <- snpgdsHCluster(snpgdsIBS(genofile,num.thread=2, autosome.only=FALSE))
+write.csv(ibs$dist, file = "ofav_2brad_snp_passing_ibs.csv") # 2bRAD only
+# write.csv(ibs$dist, file = "ofav_snp_passing_ibs.csv") # WGS and 2bRAD
+
+
+#### Dendrogram ####
+
 if (!require("pacman")) install.packages("pacman")
 
 pacman::p_load("dendextend", "ggdendro", "tidyverse")
 
-cloneBams = read.table("ofav_2brad_snp_ibsmatrix.mibs.id") # list of bam files
-cloneMeta = read.csv("bams_2brad.csv", header = T)
-cloneBams %>%
-  select(V1) %>%
-  rename(Sample = V1) %>%
-  mutate(across('Sample', str_replace, 'CPR_', '')) %>%
-  left_join(cloneMeta, by = "Sample") -> cloneBams
+cloneMeta = read.csv("bams_2brad.csv", header = T) # 2bRAD only
+# cloneMeta = read.csv("bams.csv", header = T) # WGS and 2bRAD
 
-cloneMa = as.matrix(read.table("ofav_2brad_snp_ibsmatrix.mibs")) # reads in IBS matrix produced by ANGSD 
+cloneMa = ibs$dist
 
-dimnames(cloneMa) = list(cloneBams[,1],cloneBams[,1])
+dimnames(cloneMa) = list(cloneMeta[,1],cloneMeta[,1])
 clonesHc = hclust(as.dist(cloneMa),"ave")
 
-cloneGeno = cloneBams$PutGeno
-cloneReps = cloneBams$GenoRep
+cloneGeno = cloneMeta$PutGeno
+cloneReps = cloneMeta$GenoRep
 
 cloneDend = cloneMa %>% as.dist() %>% hclust(.,"ave") %>% as.dendrogram()
 cloneDData = cloneDend %>% dendro_data()
@@ -77,4 +108,5 @@ cloneDend = cloneDendA + theme(
 
 cloneDend
 
-ggsave("cloneDend_2brad.pdf", plot = cloneDend, height = 7, width = 28, units = "in", dpi = 300)
+ggsave("cloneDend_2brad.pdf", plot = cloneDend, height = 7, width = 28, units = "in", dpi = 300) # 2bRAD only
+# ggsave("cloneDend_wgs_2brad.pdf", plot = cloneDend, height = 7, width = 49, units = "in", dpi = 300) # WGS and 2bRAD

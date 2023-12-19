@@ -1,4 +1,4 @@
-## Genome Analysis ToolKit (GATK) pipeline, version December 7, 2023
+## Genome Analysis ToolKit (GATK) pipeline, version December 18, 2023
 # Created by Michael Studivan (studivanms@gmail.com) based on GATK best practices
 https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
@@ -7,7 +7,7 @@ https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-va
 
 
 #------------------------------
-## Hard Genotyping (GATK; 2bRAD and WGS together)
+## Hard Genotyping (GATK)
 
 # First, some housekeeping, package installation, and data formatting
 
@@ -108,6 +108,18 @@ java -XX:+PrintFlagsFinal -version | grep HeapSize
 # Rule of thumb to specify ~80% of max value in -Xmx flag below
 
 # Combining single vcf files into a genomics database
+echo '#!/bin/bash' > vcfs.sh
+echo 'conda activate GATKenv' >> vcfs.sh
+echo "gatk --java-options "-Xmx12g" \
+       GenomicsDBImport \
+       --genomicsdb-workspace-path wgs_database \
+       --batch-size 50 \
+       -L intervals.list \
+       --sample-name-map vcfs_wgs.list \
+       --tmp-dir /mnt/beegfs/home/mstudiva/scratch/tmp" >> vcfs.sh
+sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j -c epyc7702 --mem=0 vcfs.sh
+# -c epyc7702 --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
+
 # For some reason, I cannot get gatk to run on KoKo; keep getting out of memory errors
 # But it is working on my local machine
 # Follow the instructions to install GATK4 and all dependencies locally in ~/bin/: https://github.com/broadinstitute/gatk
@@ -117,29 +129,7 @@ scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.s
 scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.fa.fai .
 scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.scaffolds.dict .
 
-# creating genomics db
-~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
-       GenomicsDBImport \
-       --genomicsdb-workspace-path ofav_database \
-       --batch-size 50 \
-       -L intervals.list \
-       --sample-name-map vcfs.list \
-       -R ../Orbicella_faveolata_gen_17.scaffolds.fa \
-       --tmp-dir /Volumes/tmp # empty hard drive for temp files
-# This took about 2 weeks on my local machine
-
-# To add additional samples to the genomics db
-~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
-       GenomicsDBImport \
-       --genomicsdb-update-workspace-path ofav_database \
-       --batch-size 50 \
-       -L intervals.list \
-       --sample-name-map vcfs2.list \
-       -R ../Orbicella_faveolata_gen_17.scaffolds.fa \
-       --tmp-dir /Volumes/tmp # empty hard drive for temp files
-
-
-# Creating separate genomicsdb's for WGS and 2bRAD samples
+# Creating genomicsdb on local machine for 2bRAD samples
 ~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
        GenomicsDBImport \
        --genomicsdb-workspace-path 2brad_database \
@@ -147,8 +137,9 @@ scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.s
        -L ../intervals.list \
        --sample-name-map ../vcfs_2brad.list \
        -R ../Orbicella_faveolata_gen_17.scaffolds.fa \
-       --tmp-dir /Volumes/tmp # empty hard drive for temp files
+       --tmp-dir /Volumes/tmp
 
+       # Creating genomicsdb on local machine for WGS samples
 ~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
       GenomicsDBImport \
       --genomicsdb-workspace-path wgs_database \
@@ -157,26 +148,21 @@ scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.s
       --sample-name-map ../vcfs_wgs.list \
       -R ../Orbicella_faveolata_gen_17.scaffolds.fa \
       --tmp-dir /Volumes/tmp
+# This took about 2 weeks on my local machine
+
+# To add additional samples to the genomics db
+~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
+       GenomicsDBImport \
+       --genomicsdb-update-workspace-path wgs_database \
+       --batch-size 50 \
+       -L intervals.list \
+       --sample-name-map vcfs2_wgs.list \
+       -R ../Orbicella_faveolata_gen_17.scaffolds.fa \
+       --tmp-dir /Volumes/tmp # empty hard drive for temp files
 
 
 #------------------------------
 ## Joint genotyping
-
-# joint SNP calling across all samples in genomics db
-~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
-      GenotypeGVCFs \
-      -R ../Orbicella_faveolata_gen_17.scaffolds.fa \
-      -V gendb://ofav_database \
-      -O ../ofav.vcf.gz
-# This took a week on my local machine
-
-
-# joint SNP calling for WGS genomics db
-~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
-      GenotypeGVCFs \
-      -R ../Orbicella_faveolata_gen_17.scaffolds.fa \
-      -V gendb://wgs_database \
-      -O ../ofav_wgs.vcf.gz
 
 # joint SNP calling for 2bRAD genomics db
 ~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
@@ -185,26 +171,19 @@ scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.s
       -V gendb://2brad_database \
       -O ../ofav_2brad.vcf.gz
 
+# joint SNP calling for WGS genomics db
+~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
+      GenotypeGVCFs \
+      -R ../Orbicella_faveolata_gen_17.scaffolds.fa \
+      -V gendb://wgs_database \
+      -O ../ofav_wgs.vcf.gz
+
 
 #------------------------------
 ## Filtering variants (finding the best-quality SNPs and indels for your dataset)
 
 # GATK recommends using Variant Quality Score Recalibration (VQSR), but this tool requires 'truth' and 'training' datasets for the machine learning algorithm
 # These resources do not exist for non-model organisms, so we will use hard-filtering instead (applying a standardized threshold for good SNPs)
-
-cd ..
-
-# First separating SNPs from indels
-~/bin/gatk-4.4.0.0/gatk SelectVariants \
-      --variant ofav.vcf.gz \
-      --select-type SNP \
-      --output ofav_snp.vcf.gz
-
-# ~/bin/gatk-4.4.0.0/gatk SelectVariants \
-      --variant ofav.vcf.gz \
-      --select-type INDEL \
-      --output ofav_indel.vcf.gz
-
 
 # Selecting SNPs from 2bRAD samples
 ~/bin/gatk-4.4.0.0/gatk SelectVariants \
@@ -213,22 +192,8 @@ cd ..
       -R Orbicella_faveolata_gen_17.scaffolds.fa \
       --output ofav_2brad_snp.vcf.gz
 
-
-# SNP filtering
+# SNP filtering for 2bRAD samples
 # Filters based on GATK recommendations: https://gatk.broadinstitute.org/hc/en-us/articles/360035531112--How-to-Filter-variants-either-with-VQSR-or-by-hard-filtering#2
-~/bin/gatk-4.4.0.0/gatk VariantFiltration \
-      -R Orbicella_faveolata_gen_17.scaffolds.fa \
-      -V ofav_snp.vcf.gz \
-      -O ofav_snp_filtered.vcf.gz \
-      --filter-expression "QD < 2.0" --filter-name "QD2" \
-      --filter-expression "QUAL < 30.0" --filter-name "QUAL30" \
-      --filter-expression "SOR > 3.0" --filter-name "SOR3" \
-      --filter-expression "FS > 60.0" --filter-name "FS60" \
-      --filter-expression "MQ < 40.0" --filter-name "MQ40" \
-      --filter-expression "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
-      --filter-expression "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8"
-
-
 ~/bin/gatk-4.4.0.0/gatk VariantFiltration \
       -R Orbicella_faveolata_gen_17.scaffolds.fa \
       -V ofav_2brad_snp.vcf.gz \
@@ -242,49 +207,63 @@ cd ..
       --filter-expression "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8"
 
 # Make sure the number of variants is the same between the original and filtered vcf files (should be the same)
-zgrep -v "^#" ofav_snp.vcf.gz | wc -l                                                  # 24847138
-zgrep -v "^#" ofav_snp_filtered.vcf.gz | wc -l                                         # 24847138
-# But when we sort by variants passing filter
-zgrep -v "^#" ofav_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > snp_filtered.txt  # 10653428 PASS
-
-
 zgrep -v "^#" ofav_2brad_snp.vcf.gz | wc -l                                                  # 61812
 zgrep -v "^#" ofav_2brad_snp_filtered.vcf.gz | wc -l                                         # 61812
 # But when we sort by variants passing filter
-zgrep -v "^#" ofav_2brad_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > snp_filtered.txt  # 29767 PASS
+zgrep -v "^#" ofav_2brad_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > 2brad_snp_filtered.txt  # 29767 PASS
 
+# Separating SNPs from indels for WGS samples
+~/bin/gatk-4.4.0.0/gatk SelectVariants \
+      --variant ofav_wgs.vcf.gz \
+      --select-type SNP \
+      --output ofav_wgs_snp.vcf.gz
 
-# Indel filtering
+# ~/bin/gatk-4.4.0.0/gatk SelectVariants \
+      --variant ofav_wgs.vcf.gz \
+      --select-type INDEL \
+      --output ofav_wgs_indel.vcf.gz
+
+# SNP filtering for WGS samples
+~/bin/gatk-4.4.0.0/gatk VariantFiltration \
+      -R Orbicella_faveolata_gen_17.scaffolds.fa \
+      -V ofav_wgs_snp.vcf.gz \
+      -O ofav_wgs_snp_filtered.vcf.gz \
+      --filter-expression "QD < 2.0" --filter-name "QD2" \
+      --filter-expression "QUAL < 30.0" --filter-name "QUAL30" \
+      --filter-expression "SOR > 3.0" --filter-name "SOR3" \
+      --filter-expression "FS > 60.0" --filter-name "FS60" \
+      --filter-expression "MQ < 40.0" --filter-name "MQ40" \
+      --filter-expression "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
+      --filter-expression "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8"
+
+# Make sure the number of variants is the same between the original and filtered vcf files (should be the same)
+zgrep -v "^#" ofav_wgs_snp.vcf.gz | wc -l                                                  # 24847138
+zgrep -v "^#" ofav_wgs_snp_filtered.vcf.gz | wc -l                                         # 24847138
+# But when we sort by variants passing filter
+zgrep -v "^#" ofav_wgs_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > wgs_snp_filtered.txt  # 10653428 PASS
+
+# Indel filtering for WGS samples only (2bRAD samples don't contain indels)
 # Filters based on GATK recommendations: https://gatk.broadinstitute.org/hc/en-us/articles/360035531112--How-to-Filter-variants-either-with-VQSR-or-by-hard-filtering#2
 # ~/bin/gatk-4.4.0.0/gatk VariantFiltration \
       -R Orbicella_faveolata_gen_17.scaffolds.fa \
-      -V ofav_indel.vcf.gz \
-      -O ofav_indel_filtered.vcf.gz \
+      -V ofav_wgs_indel.vcf.gz \
+      -O ofav_wgs_indel_filtered.vcf.gz \
       --filter-expression "QD < 2.0" --filter-name "QD2" \
       --filter-expression "QUAL < 30.0" --filter-name "QUAL30" \
       --filter-expression "FS > 200.0" --filter-name "FS200" \
       --filter-expression "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20"
 
 # Make sure the number of variants is the same between the original and filtered vcf files (should be the same)
-# zgrep -v "^#" ofav_indel.vcf.gz | wc -l                                                     # 3340789
-# zgrep -v "^#" ofav_indel_filtered.vcf.gz | wc -l                                            # 3340789
+# zgrep -v "^#" ofav_wgs_indel.vcf.gz | wc -l                                                     # 3340789
+# zgrep -v "^#" ofav_wgs_indel_filtered.vcf.gz | wc -l                                            # 3340789
 # But when we sort by variants passing filter
-# zgrep -v "^#" ofav_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > indel_filtered.txt   # 3249070 PASS
+# zgrep -v "^#" ofav_wgs_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > wgs_indel_filtered.txt   # 3249070 PASS
 
 
 #------------------------------
 ## Assessing raw vs filtered variants
 
-# filtered SNPs (includes those that failed filters)
-~/bin/gatk-4.4.0.0/gatk VariantsToTable \
-     -R Orbicella_faveolata_gen_17.scaffolds.fa \
-     -V ofav_snp_filtered.vcf.gz \
-     -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
-     -O ofav_snp_filtered.table \
-     --show-filtered \
-     -F FILTER
-
-
+# filtered SNPs from 2bRAD samples (includes those that failed filters)
 ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
     -R Orbicella_faveolata_gen_17.scaffolds.fa \
     -V ofav_2brad_snp_filtered.vcf.gz \
@@ -293,102 +272,102 @@ zgrep -v "^#" ofav_2brad_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > snp_f
     --show-filtered \
     -F FILTER
 
-
-# filtered indels (includes those that failed filters)
-# ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
-     -R Orbicella_faveolata_gen_17.scaffolds.fa \
-     -V ofav_indel_filtered.vcf.gz \
-     -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
-     -O ofav_indel_filtered.table \
-     --show-filtered \
-     -F FILTER
-
-# passing SNPs (excludes those that failed filters)
-~/bin/gatk-4.4.0.0/gatk VariantsToTable \
-     -R Orbicella_faveolata_gen_17.scaffolds.fa \
-     -V ofav_snp_filtered.vcf.gz \
-     -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
-     -O ofav_snp_passing.table
-
+# passing SNPs from 2bRAD samples (excludes those that failed filters)
 ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
     -R Orbicella_faveolata_gen_17.scaffolds.fa \
     -V ofav_2brad_snp_filtered.vcf.gz \
     -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
     -O ofav_2brad_snp_passing.table
 
+# filtered SNPs from WGS samples (includes those that failed filters)
+~/bin/gatk-4.4.0.0/gatk VariantsToTable \
+     -R Orbicella_faveolata_gen_17.scaffolds.fa \
+     -V ofav_wgs_snp_filtered.vcf.gz \
+     -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
+     -O ofav_wgs_snp_filtered.table \
+     --show-filtered \
+     -F FILTER
 
-# passing indels (excludes those that failed filters)
+# passing SNPs from WGS samples (excludes those that failed filters)
+~/bin/gatk-4.4.0.0/gatk VariantsToTable \
+    -R Orbicella_faveolata_gen_17.scaffolds.fa \
+    -V ofav_snp_filtered.vcf.gz \
+    -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
+    -O ofav_snp_passing.table
+
+# filtered indels from WGS samples (includes those that failed filters)
 # ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
      -R Orbicella_faveolata_gen_17.scaffolds.fa \
-     -V ofav_indel_filtered.vcf.gz \
+     -V ofav_wgs_indel_filtered.vcf.gz \
      -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
-     -O ofav_indel_passing.table
+     -O ofav_wgs_indel_filtered.table \
+     --show-filtered \
+     -F FILTER
+
+# passing indels from WGS samples (excludes those that failed filters)
+# ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
+     -R Orbicella_faveolata_gen_17.scaffolds.fa \
+     -V ofav_wgs_indel_filtered.vcf.gz \
+     -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
+     -O ofav_wgs_indel_passing.table
 
 # Now, use the R script GATK_filter.R to visualize the results of the filtering
-# Once done, either adjust the filtering thresholds above based on your data, or proceed below
+# Once done, either adjust the filtering thresholds above based on your data and repeat filtering/QAQC, or proceed below
 
 
 #------------------------------
-## Merging SNPs and indels
+## Exporting passing SNPs and indels
 
-# java -jar ~/bin/picard/build/libs/picard.jar SortVcf \
-     I=ofav_snp_filtered.vcf.gz \
-     I=ofav_indel_filtered.vcf.gz \
-     O=ofav_filtered.vcf.gz
-
-# Creating a vcf of just variants passing filter
-# ~/bin/gatk-4.4.0.0/gatk SelectVariants \
-     --variant ofav_filtered.vcf.gz \
-     --exclude-filtered \
-     --output ofav_passing.vcf.gz
-
-# Creating a vcf of just SNPs passing filter, further subsetted to SNPs found across all samples
-~/bin/gatk-4.4.0.0/gatk SelectVariants \
-    --variant ofav_snp_filtered.vcf.gz \
-    --exclude-filtered \
-    --restrict-alleles-to BIALLELIC \
-    --max-nocall-fraction 0 \
-    --exclude-non-variants \
-    --output ofav_snp_passing.vcf.gz \
-
-# How many SNPs is that?
-zgrep -v "^#" ofav_snp_passing.vcf.gz | wc -l   # 9895747
-
-
+# Creating a vcf of 2bRAD SNPs passing filter
 ~/bin/gatk-4.4.0.0/gatk SelectVariants \
      --variant ofav_2brad_snp_filtered.vcf.gz \
      --exclude-filtered \
      -R Orbicella_faveolata_gen_17.scaffolds.fa \
      --output ofav_2brad_snp_passing.vcf.gz
 
+# Creating a vcf of WGS SNPs passing filter
+~/bin/gatk-4.4.0.0/gatk SelectVariants \
+     --variant ofav_wgs_snp_filtered.vcf.gz \
+     --exclude-filtered \
+     -R Orbicella_faveolata_gen_17.scaffolds.fa \
+     --output ofav_wgs_snp_passing.vcf.gz
+
+# Creating a vcf of WGS indels passing filter
+~/bin/gatk-4.4.0.0/gatk SelectVariants \
+    --variant ofav_wgs_indel_filtered.vcf.gz \
+    --exclude-filtered \
+    -R Orbicella_faveolata_gen_17.scaffolds.fa \
+    --output ofav_wgs_indel_passing.vcf.gz
+
+# Now, use the R script GATK_clones.R to visualize genotype relatedness among samples
+
 
 #------------------------------
-## Creating identical by state (IBS) matrix for phylogenetic trees and further analysis
-# Thanks to ChatGPT for this bit!
+## GATK_clones.R on KoKo
 
-# Install dependencies
-brew install bcftools
-brew install vcftools
-# Download plink from https://www.cog-genomics.org/plink/1.9/, put it in your working directory, then right click and open to allow run access
+# The R package vcfR in GATK_clones.R is running out of RAM processing the full WGS SNP vcf
+# Let's try on KoKo
 
-# converting any multiallelic variants into biallelic variants
-# bcftools norm -m-any ofav_passing.vcf.gz -o ofav_passing_split.vcf.gz
+# Start by creating a conda environment for R
+conda create -n R r r-essentials
+conda activate R
+R # to activate R
 
-# convert vcf to plink data format with vcftools
-# ./plink --vcf ofav_passing_split.vcf.gz --make-bed --out ofav_passing --allow-extra-chr
-./plink --vcf ofav_snp_passing.vcf.gz --make-bed --out ofav_snp_passing --allow-extra-chr --double-id
+# Installing packages
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install("SNPRelate")
+BiocManager::install("vcfR")
+BiocManager::install("VariantAnnotation")
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load("dendextend", "ggdendro", "tidyverse")
+quit() # to exit R session, answer 'no' to not save workspace
 
-./plink --vcf ofav_2brad_snp_passing.vcf.gz --make-bed --out ofav_2brad_snp_passing --allow-extra-chr --double-id
+# scp GATK_clones.R script, ofav_wgs_snp_passing.vcf.gz, bams_wgs.csv, and techReps.csv to KoKo
 
-# confirm that sample IDs match between the vcf and plink files
-bcftools query -l ofav_passing.vcf.gz # prints all names
-bcftools query -l ofav_passing.vcf.gz | wc -l # counts the number, in this case, 365
-# run plink_sampleIDs.py for plink sample IDs
-python plink_sampleIDs.py # prints all names
-python plink_sampleIDs.py | wc -l # 365
-
-# calculate IBS matrix using plink2
-# ./plink --bfile ofav_passing --distance ibs square --out ofav_ibsmatrix --allow-extra-chr
-./plink --bfile ofav_snp_passing --distance ibs square --out ofav_snp_ibsmatrix --allow-extra-chr
-
-./plink --bfile ofav_2brad_snp_passing --distance ibs square --out ofav_2brad_snp_ibsmatrix --allow-extra-chr
+# Now create job script to run R scipt
+echo '#!/bin/bash' >R.sh
+echo 'conda activate R' >>R.sh
+echo Rscript GATK_clones.R prefix=ofav_snp_passing >>R.sh
+sbatch --partition=shortq7 -o R.o%j -e R.e%j --constraint="epyc7702" --mem=0 R.sh
+# --constraint="epyc7702" --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
