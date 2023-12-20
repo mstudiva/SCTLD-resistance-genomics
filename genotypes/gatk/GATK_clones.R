@@ -1,7 +1,7 @@
 #### IBS matrix ####
 
 # if (!requireNamespace("BiocManager", quietly = TRUE))
-#   install.packages("BiocManager")
+#   BiocManager::install(version = "3.18")
 # BiocManager::install("SNPRelate")
 library(SNPRelate)
 library(gdsfmt)
@@ -24,8 +24,8 @@ snpgdsCreateGeno("ofav_2brad_snp_passing.gds", geno) # 2bRAD only
 # snpgdsCreateGeno("ofav_snp_passing.gds", geno) # WGS and 2bRAD
 
 # Creating IBS matrix
-genofile<-snpgdsOpen("ofav_2brad_snp_passing.gds") # 2bRAD only
-# genofile<-snpgdsOpen("ofav_snp_passing.gds") # WGS and 2bRAD
+# genofile<-snpgdsOpen("ofav_2brad_snp_passing.gds") # 2bRAD only
+genofile<-snpgdsOpen("ofav_snp_passing.gds") # WGS and 2bRAD
 set.seed(100)
 ibs <- snpgdsHCluster(snpgdsIBS(genofile,num.thread=2, autosome.only=FALSE))
 write.csv(ibs$dist, file = "ofav_2brad_snp_passing_ibs.csv") # 2bRAD only
@@ -38,8 +38,8 @@ if (!require("pacman")) install.packages("pacman")
 
 pacman::p_load("dendextend", "ggdendro", "tidyverse")
 
-cloneMeta = read.csv("bams_2brad.csv", header = T) # 2bRAD only
-# cloneMeta = read.csv("bams.csv", header = T) # WGS and 2bRAD
+# cloneMeta = read.csv("bams_2brad.csv", header = T) # 2bRAD only
+cloneMeta = read.csv("bams.csv", header = T) # WGS and 2bRAD
 
 cloneMa = ibs$dist
 
@@ -48,6 +48,7 @@ clonesHc = hclust(as.dist(cloneMa),"ave")
 
 cloneGeno = cloneMeta$PutGeno
 cloneReps = cloneMeta$GenoRep
+cloneSeq = cloneMeta$Seq
 
 cloneDend = cloneMa %>% as.dist() %>% hclust(.,"ave") %>% as.dendrogram()
 cloneDData = cloneDend %>% dendro_data()
@@ -63,7 +64,7 @@ cloneDendPoints$geno = cloneGeno[order.dendrogram(cloneDend)]
 cloneDendPoints$reps=cloneReps[order.dendrogram(cloneDend)]
 rownames(cloneDendPoints) = cloneDendPoints$label
 
-# Making points at the leaves to place symbols for populations
+# Making points at the leaves to place symbols for sequencing pipeline
 point = as.vector(NA)
 for(i in 1:nrow(cloneDData$segments)) {
   if (cloneDData$segments$yend[i] == 0) {
