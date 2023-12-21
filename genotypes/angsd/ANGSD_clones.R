@@ -2,9 +2,9 @@ if (!require("pacman")) install.packages("pacman")
 
 pacman::p_load("dendextend", "ggdendro", "tidyverse")
 
-cloneMeta = read.csv("bams_2brad.csv", header = T) # list of bam files
+cloneMeta = read.csv("../bams_2brad.csv", header = T) # list of bam files
 
-cloneMa = as.matrix(read.table("ofavClones.ibsMat")) # reads in IBS matrix produced by ANGSD 
+cloneMa = as.matrix(read.table("radClones.ibsMat")) # reads in IBS matrix produced by ANGSD 
 
 dimnames(cloneMa) = list(cloneMeta[,1],cloneMeta[,1])
 clonesHc = hclust(as.dist(cloneMa),"ave")
@@ -36,7 +36,7 @@ for(i in 1:nrow(cloneDData$segments)) {
 
 cloneDendPoints$y = point[!is.na(point)]
 
-techReps <- c(read.csv("techReps.csv", head = F))
+techReps <- c(read.csv("../techReps.csv", head = F))
 
 cloneDendA = ggplot() +
   geom_segment(data = segment(cloneDData), aes(x = x, y = y, xend = xend, yend = yend2), size = 0.5) +
@@ -45,8 +45,8 @@ cloneDendA = ggplot() +
   # scale_fill_manual(values = flPal, name= "Population")+
   scale_shape_manual(values = c(21, 22), name = "Sequencing Pipeline")+
   # geom_hline(yintercept = 0.75, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold
-  geom_text(data = subset(cloneDendPoints, subset = reps %in% techReps$V1), aes(x = x, y = (y - .025), label = reps), angle = 90) + # spacing technical replicates further from leaf
-  geom_text(data = subset(cloneDendPoints, subset = !reps %in% techReps$V1), aes(x = x, y = (y - .010), label = geno), angle = 90) +
+  geom_text(data = subset(cloneDendPoints, subset = reps %in% techReps$V1), aes(x = x, y = (y - .04), label = reps), angle = 90) + # spacing technical replicates further from leaf
+  geom_text(data = subset(cloneDendPoints, subset = !reps %in% techReps$V1), aes(x = x, y = (y - .015), label = geno), angle = 90) +
   labs(y = "Genetic distance (1 - IBS)") +
   guides(fill = guide_legend(override.aes = list(shape = 22)))+
   theme_classic()
@@ -71,4 +71,4 @@ cloneDend = cloneDendA + theme(
 
 cloneDend
 
-ggsave("cloneDend_2brad.pdf", plot = cloneDend, height = 7, width = 28, units = "in", dpi = 300) # 2bRAD only
+ggsave("cloneDend_angsd_2brad.pdf", plot = cloneDend, height = 7, width = 28, units = "in", dpi = 300) # 2bRAD only
