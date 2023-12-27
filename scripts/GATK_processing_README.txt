@@ -1,4 +1,4 @@
-## Genome Analysis ToolKit (GATK) pipeline, version December 18, 2023
+## Genome Analysis ToolKit (GATK) pipeline, version December 27, 2023
 # Created by Michael Studivan (studivanms@gmail.com) based on GATK best practices
 https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
@@ -148,7 +148,7 @@ scp mstudiva@koko-login.hpc.fau.edu:~/db/ofavgenome/Orbicella_faveolata_gen_17.s
       --sample-name-map ../vcfs_wgs.list \
       -R ../Orbicella_faveolata_gen_17.scaffolds.fa \
       --tmp-dir /Volumes/tmp
-# This took about 2 weeks on my local machine
+# This took about 3 weeks on my local machine
 
 # To add additional samples to the genomics db
 ~/bin/gatk-4.4.0.0/gatk --java-options "-Xmx32g" \
