@@ -1,5 +1,5 @@
 
-## Analysis of Next-Generation Sequencing Data (ANGSD) pipeline, version December 20, 2023
+## Analysis of Next-Generation Sequencing Data (ANGSD) pipeline, version January 1, 2024
 # Created by Michael Studivan (studivanms@gmail.com) based on 2bRAD pipeline by Ryan Eckert (reckert2017@fau.edu)
 https://ryaneckert.github.io/Stephanocoenia_FKNMS_PopGen/code/
 WGS pipeline developed from GATK best practices
@@ -49,7 +49,7 @@ module load R/3.6.1
 echo '#!/bin/bash' >RQC.sh
 echo Rscript ~/bin/plotQC.R prefix=dd >>RQC.sh
 echo gzip -9 dd.counts >>RQC.sh
-sbatch -e RQC.e%j -o RQC.o%j --dependency=afterok:460550 --mem=200GB RQC.sh
+sbatch -e RQC.e%j -o RQC.o%j --dependency=afterok:460550 --mem=200GB --mail-user=studivanms@gmail.com RQC.sh
 
 cat quality.txt # proportion of sites covered at >5X
 
@@ -76,11 +76,24 @@ scp mstudiva@koko-login.hpc.fau.edu:~/project/directory/ANGSD/radClones.ibsMat .
 #------------------------------
 # WGS-specific settings
 
+module load angsd-0.933-gcc-9.2.0-65d64pp
+
 export FILTERS="-uniqueOnly 1 -remove_bads 1 -minMapQ 20 -maxDepth 1800 -minInd 90"
 export TODO="-doQsDist 1 -doDepth 1 -doCounts 1 -dumpCounts 2"
 echo '#!/bin/bash' >wgsDD.sh
 echo angsd -b bamsClones -GL 1 $FILTERS $TODO -P 1 -out dd -nThreads 20 >>wgsDD.sh
 sbatch --mem=200GB -o wgsDD.o%j -e wgsDD.e%j --mail-user=studivanms@gmail.com --mail-type=ALL --partition=longq7 wgsDD.sh
+
+module load R/3.6.1
+echo '#!/bin/bash' >RQC.sh
+echo 'module load R/3.6.1' >>RQC.sh
+echo Rscript ~/bin/plotQC.R prefix=dd >>RQC.sh
+sbatch --partition=shortq7 -o RQC.o%j -e RQC.e%j --dependency=afterok:460550 --constraint="epyc7702" --mem=0 RQC.sh
+# --constraint="epyc7702" --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
+
+echo '#!/bin/bash' >zip.sh
+echo gzip -9 dd.counts >>zip.sh
+sbatch --partition=longq7 -o zip.o%j -e zip.e%j zip.sh
 
 FILTERS="-uniqueOnly 1 -remove_bads 1 -minMapQ 20 -minQ 30 -dosnpstat 1 -doHWE 1 -hwe_pval 1e-5 -sb_pval 1e-5 -hetbias_pval 1e-5 -skipTriallelic 1 -minInd 144 -snp_pval 1e-6 -minMaf 0.05"
 TODO="-doMajorMinor 1 -doMaf 1 -doCounts 1 -makeMatrix 1 -doIBS 1 -doCov 1 -doGeno 8 -doBcf 1 -doPost 1 -doGlf 2"
