@@ -15,21 +15,21 @@ library(VariantAnnotation)
 library(vcfR)
 
 # Replace 'your_data.vcf.gz' with your actual VCF file name
-vcf <- read.vcfR("ofav_2brad_snp_passing.vcf.gz") # 2bRAD only
-# vcf <- read.vcfR("ofav_snp_passing.vcf.gz") # WGS and 2bRAD
+# vcf <- read.vcfR("ofav_2brad_snp_passing.vcf.gz") # 2bRAD only
+vcf <- read.vcfR("ofav_wgs_snp_passing.vcf.gz") # WGS only
 
 # Convert vcf to GDS
 geno <- extract.gt(vcf, as.numeric = T)
-snpgdsCreateGeno("ofav_2brad_snp_passing.gds", geno) # 2bRAD only
-# snpgdsCreateGeno("ofav_snp_passing.gds", geno) # WGS and 2bRAD
+# snpgdsCreateGeno("ofav_2brad_snp_passing.gds", geno) # 2bRAD only
+snpgdsCreateGeno("ofav_wgs_snp_passing.gds", geno) # WGS only
 
 # Creating IBS matrix
 # genofile<-snpgdsOpen("ofav_2brad_snp_passing.gds") # 2bRAD only
-genofile<-snpgdsOpen("ofav_snp_passing.gds") # WGS and 2bRAD
+genofile<-snpgdsOpen("ofav_wgs_snp_passing.gds") # WGS only
 set.seed(100)
 ibs <- snpgdsHCluster(snpgdsIBS(genofile,num.thread=2, autosome.only=FALSE))
-write.csv(ibs$dist, file = "ofav_2brad_snp_passing_ibs.csv") # 2bRAD only
-# write.csv(ibs$dist, file = "ofav_snp_passing_ibs.csv") # WGS and 2bRAD
+# write.csv(ibs$dist, file = "ofav_2brad_snp_passing_ibs.csv") # 2bRAD only
+write.csv(ibs$dist, file = "ofav_wgs_snp_passing_ibs.csv") # WGS only
 
 
 #### Dendrogram ####
@@ -39,7 +39,7 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load("dendextend", "ggdendro", "tidyverse")
 
 # cloneMeta = read.csv("bams_2brad.csv", header = T) # 2bRAD only
-cloneMeta = read.csv("bams.csv", header = T) # WGS and 2bRAD
+cloneMeta = read.csv("bams_wgs.csv", header = T) # WGS only
 
 cloneMa = ibs$dist
 
@@ -81,7 +81,7 @@ cloneDendA = ggplot() +
   geom_point(data = cloneDendPoints, aes(x = x, y = y, fill = geno), size = 4, stroke = 0.25) +
   #scale_fill_brewer(palette = "Dark2", name = "Population") +
   # scale_fill_manual(values = flPal, name= "Population")+
-  scale_shape_manual(values = c(21, 22), name = "Sequencing Pipeline")+
+  # scale_shape_manual(values = c(21, 22), name = "Sequencing Pipeline")+
   # geom_hline(yintercept = 0.75, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold
   geom_text(data = subset(cloneDendPoints, subset = reps %in% techReps$V1), aes(x = x, y = (y - .025), label = reps), angle = 90) + # spacing technical replicates further from leaf
   geom_text(data = subset(cloneDendPoints, subset = !reps %in% techReps$V1), aes(x = x, y = (y - .010), label = geno), angle = 90) +
@@ -109,5 +109,5 @@ cloneDend = cloneDendA + theme(
 
 cloneDend
 
-ggsave("cloneDend_2brad.pdf", plot = cloneDend, height = 7, width = 28, units = "in", dpi = 300) # 2bRAD only
-# ggsave("cloneDend_wgs_2brad.pdf", plot = cloneDend, height = 7, width = 49, units = "in", dpi = 300) # WGS and 2bRAD
+# ggsave("cloneDend_2brad.pdf", plot = cloneDend, height = 7, width = 28, units = "in", dpi = 300) # 2bRAD only
+ggsave("cloneDend_wgs.pdf", plot = cloneDend, height = 7, width = 28, units = "in", dpi = 300) # WGS only

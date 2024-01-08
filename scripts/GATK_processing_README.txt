@@ -1,4 +1,4 @@
-## Genome Analysis ToolKit (GATK) pipeline, version December 27, 2023
+## Genome Analysis ToolKit (GATK) pipeline, version January 8, 2024
 # Created by Michael Studivan (studivanms@gmail.com) based on GATK best practices
 https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
@@ -218,7 +218,7 @@ zgrep -v "^#" ofav_2brad_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > 2brad
       --select-type SNP \
       --output ofav_wgs_snp.vcf.gz
 
-# ~/bin/gatk-4.4.0.0/gatk SelectVariants \
+~/bin/gatk-4.4.0.0/gatk SelectVariants \
       --variant ofav_wgs.vcf.gz \
       --select-type INDEL \
       --output ofav_wgs_indel.vcf.gz
@@ -237,14 +237,14 @@ zgrep -v "^#" ofav_2brad_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > 2brad
       --filter-expression "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8"
 
 # Make sure the number of variants is the same between the original and filtered vcf files (should be the same)
-zgrep -v "^#" ofav_wgs_snp.vcf.gz | wc -l                                                  # 24847138
-zgrep -v "^#" ofav_wgs_snp_filtered.vcf.gz | wc -l                                         # 24847138
+zgrep -v "^#" ofav_wgs_snp.vcf.gz | wc -l                                                  # 24097804
+zgrep -v "^#" ofav_wgs_snp_filtered.vcf.gz | wc -l                                         # 24097804
 # But when we sort by variants passing filter
-zgrep -v "^#" ofav_wgs_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > wgs_snp_filtered.txt  # 10653428 PASS
+zgrep -v "^#" ofav_wgs_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > wgs_snp_filtered.txt  # 10366466 PASS
 
 # Indel filtering for WGS samples only (2bRAD samples don't contain indels)
 # Filters based on GATK recommendations: https://gatk.broadinstitute.org/hc/en-us/articles/360035531112--How-to-Filter-variants-either-with-VQSR-or-by-hard-filtering#2
-# ~/bin/gatk-4.4.0.0/gatk VariantFiltration \
+~/bin/gatk-4.4.0.0/gatk VariantFiltration \
       -R Orbicella_faveolata_gen_17.scaffolds.fa \
       -V ofav_wgs_indel.vcf.gz \
       -O ofav_wgs_indel_filtered.vcf.gz \
@@ -254,10 +254,10 @@ zgrep -v "^#" ofav_wgs_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > wgs_snp
       --filter-expression "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20"
 
 # Make sure the number of variants is the same between the original and filtered vcf files (should be the same)
-# zgrep -v "^#" ofav_wgs_indel.vcf.gz | wc -l                                                     # 3340789
-# zgrep -v "^#" ofav_wgs_indel_filtered.vcf.gz | wc -l                                            # 3340789
+zgrep -v "^#" ofav_wgs_indel.vcf.gz | wc -l                                                     # 3238598
+zgrep -v "^#" ofav_wgs_indel_filtered.vcf.gz | wc -l                                            # 3238598
 # But when we sort by variants passing filter
-# zgrep -v "^#" ofav_wgs_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > wgs_indel_filtered.txt   # 3249070 PASS
+zgrep -v "^#" ofav_wgs_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > wgs_indel_filtered.txt   # 3145092 PASS
 
 
 #------------------------------
@@ -296,7 +296,7 @@ zgrep -v "^#" ofav_wgs_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > wgs_snp
     -O ofav_snp_passing.table
 
 # filtered indels from WGS samples (includes those that failed filters)
-# ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
+~/bin/gatk-4.4.0.0/gatk VariantsToTable \
      -R Orbicella_faveolata_gen_17.scaffolds.fa \
      -V ofav_wgs_indel_filtered.vcf.gz \
      -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
@@ -305,7 +305,7 @@ zgrep -v "^#" ofav_wgs_snp_filtered.vcf.gz | cut -f 7 | sort | uniq -c > wgs_snp
      -F FILTER
 
 # passing indels from WGS samples (excludes those that failed filters)
-# ~/bin/gatk-4.4.0.0/gatk VariantsToTable \
+~/bin/gatk-4.4.0.0/gatk VariantsToTable \
      -R Orbicella_faveolata_gen_17.scaffolds.fa \
      -V ofav_wgs_indel_filtered.vcf.gz \
      -F CHROM -F POS -F QUAL -F QD -F DP -F MQ -F MQRankSum -F FS -F ReadPosRankSum -F SOR \
