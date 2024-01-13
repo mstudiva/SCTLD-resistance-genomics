@@ -1,4 +1,4 @@
-## Genome Analysis ToolKit (GATK) pipeline, version January 8, 2024
+## Genome Analysis ToolKit (GATK) pipeline, version January 13, 2024
 # Created by Michael Studivan (studivanms@gmail.com) based on GATK best practices
 https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
@@ -368,6 +368,6 @@ quit() # to exit R session, answer 'no' to not save workspace
 # Now create job script to run R scipt
 echo '#!/bin/bash' >R.sh
 echo 'conda activate R' >>R.sh
-echo Rscript GATK_clones.R prefix=ofav_snp_passing >>R.sh
+echo Rscript GATK_clones.R >>R.sh
 sbatch --partition=shortq7 -o R.o%j -e R.e%j --constraint="epyc7702" --mem=0 R.sh
 # --constraint="epyc7702" --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
