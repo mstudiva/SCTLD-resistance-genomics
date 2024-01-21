@@ -59,12 +59,14 @@ cloneMa_rad = ibs_rad$dist
 cloneMeta_wgs = read.csv("../bams_wgs.csv", header = T) # WGS 
 cloneMa_wgs = ibs_wgs$dist
 
+# Creating row and column names for IBS matrix
 dimnames(cloneMa_rad) = list(cloneMeta_rad[,1],cloneMeta_rad[,1]) # 2bRAD 
 clonesHc_rad = hclust(as.dist(cloneMa_rad),"ave")
 
 dimnames(cloneMa_wgs) = list(cloneMeta_wgs[,1],cloneMeta_wgs[,1]) # WGS 
 clonesHc_wgs = hclust(as.dist(cloneMa_wgs),"ave")
 
+# Coding factors for tree plotting
 cloneGeno_rad = cloneMeta_rad$PutGeno # 2bRAD 
 cloneReps_rad = cloneMeta_rad$GenoRep
 cloneSeq_rad = cloneMeta_rad$Seq
@@ -73,6 +75,7 @@ cloneGeno_wgs = cloneMeta_wgs$PutGeno # WGS
 cloneReps_wgs = cloneMeta_wgs$GenoRep
 cloneSeq_wgs = cloneMeta_wgs$Seq
 
+# Creating dendogram
 cloneDend_rad = cloneMa_rad %>% as.dist() %>% hclust(.,"ave") %>% as.dendrogram() # 2bRAD 
 cloneDData_rad = cloneDend_rad %>% dendro_data()
 
@@ -117,8 +120,10 @@ for(i in 1:nrow(cloneDData_wgs$segments)) {
     point_wgs[i] = NA}}
 cloneDendPoints_wgs$y = point_wgs[!is.na(point_wgs)]
 
+# Reading in metadata for technical replicates (sequenced duplicates)
 techReps <- c(read.csv("../techReps.csv", head = F))
 
+# Plotting dendrogram based on IBS distance
 cloneDendA_rad = ggplot() + # 2bRAD 
   geom_segment(data = segment(cloneDData_rad), aes(x = x, y = y, xend = xend, yend = yend2), size = 0.5) +
   geom_point(data = cloneDendPoints_rad, aes(x = x, y = y, fill = geno), size = 4, stroke = 0.25) +
@@ -132,6 +137,7 @@ cloneDendA_rad = ggplot() + # 2bRAD
   guides(fill = guide_legend(override.aes = list(shape = 22)))+
   theme_classic()
 
+# Applying formatting
 cloneDend_rad = cloneDendA_rad + theme(
   axis.title.x = element_blank(),
   axis.text.x = element_blank(),
@@ -190,27 +196,50 @@ ggsave("cloneDend_gatk_wgs.pdf", plot = cloneDend_wgs, height = 7, width = 28, u
 
 # Creating a genind object for poppr
 genlight_rad <- vcfR2genlight(vcf_rad) # 2bRAD 
+
+# Converting to snpclone object
 snpclone_rad <- poppr::as.snpclone(genlight_rad) 
+
+# Tests for best threshold of clonal detection
+pdf(file = "mlgFilter_gatk_2brad.pdf") # Saves resulting plots
 threshtest_rad <- filter_stats(
   snpclone_rad,
   distance = bitwise.dist,
-  nclone = 100,
   plot = TRUE,
   threads = 1L)
-print(thresh_rad <- cutoff_predictor(threshtest_rad$farthest$THRESHOLDS)) 
-# 0.009723445
-mlg.filter(snpclone_rad, threads = 1L) <- thresh_rad
-snpclone_rad
+dev.off()
+# Prints the best threshold value
+print(thresh_rad <- cutoff_predictor(threshtest_rad$farthest$THRESHOLDS)) # 0.009723445
+mlg.filter(snpclone_rad, threads = 1L) <- thresh_rad # Applies the filter based on the threshold determined above
 
+# Multi-locus genotype assignments
+mlg_rad <- slot(snpclone_rad, "mlg") # Pulling the 'mlg' slot from the snpclone object
+MLG_rad <- slot(mlg_rad, "mlg") # Pulling the 'mlg' slot from the mlg object
+MLGeno_rad <- as.data.frame(MLG_rad$contracted) # Convert the slot data to a data.frame
+cloneMeta_rad_mlg <- cbind(cloneMeta_rad, MLGeno_rad) # Adding MLGs to metadata file
+write.csv(cloneMeta_rad_mlg, file = "ofav_gatk_2brad_mlg.csv") # Writing to file
+
+# Creating a genind object for poppr
 genlight_wgs <- vcfR2genlight(vcf_wgs) # WGS 
+
+# Converting to snpclone object
 snpclone_wgs <- poppr::as.snpclone(genlight_wgs) 
+
+# Tests for best threshold of clonal detection
+pdf(file = "mlgFilter_gatk_wgs.pdf") # Saves resulting plots
 threshtest_wgs <- filter_stats(
   snpclone_wgs,
   distance = bitwise.dist,
-  nclone = 100,
   plot = TRUE,
   threads = 1L)
-print(thresh_wgs <- cutoff_predictor(threshtest_wgs$farthest$THRESHOLDS)) 
-# 0.009723445
-mlg.filter(snpclone_wgs, threads = 1L) <- thresh_wgs
-snpclone_wgs
+dev.off()
+# Prints the best threshold value
+print(thresh_wgs <- cutoff_predictor(threshtest_wgs$farthest$THRESHOLDS)) # 0.05288876
+mlg.filter(snpclone_wgs, threads = 1L) <- thresh_wgs # Applies the filter based on the threshold determined above
+
+# Multi-locus genotype assignments
+mlg_wgs <- slot(snpclone_wgs, "mlg") # Pulling the 'mlg' slot from the snpclone object
+MLG_wgs <- slot(mlg_wgs, "mlg") # Pulling the 'mlg' slot from the mlg object
+MLGeno_wgs <- as.data.frame(MLG_wgs$contracted) # Convert the slot data to a data.frame
+cloneMeta_wgs_mlg <- cbind(cloneMeta_wgs, MLGeno_wgs) # Adding MLGs to metadata file
+write.csv(cloneMeta_wgs_mlg, file = "ofav_gatk_wgs_mlg.csv") # Writing to file

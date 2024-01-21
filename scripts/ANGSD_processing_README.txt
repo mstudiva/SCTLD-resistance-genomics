@@ -49,7 +49,7 @@ module load R/3.6.1
 echo '#!/bin/bash' >RQC.sh
 echo Rscript ~/bin/plotQC.R prefix=dd >>RQC.sh
 echo gzip -9 dd.counts >>RQC.sh
-sbatch -e RQC.e%j -o RQC.o%j --dependency=afterok:460550 --mem=200GB --mail-user=studivanms@gmail.com RQC.sh
+sbatch -e RQC.e%j -o RQC.o%j --dependency=afterok:460550 --mem=200GB --mail-type=ALL --mail-user=studivanms@gmail.com RQC.sh
 
 cat quality.txt # proportion of sites covered at >5X
 
@@ -88,12 +88,12 @@ module load R/3.6.1
 echo '#!/bin/bash' >RQC.sh
 echo 'module load R/3.6.1' >>RQC.sh
 echo Rscript ~/bin/plotQC.R prefix=dd >>RQC.sh
-sbatch --partition=shortq7 -o RQC.o%j -e RQC.e%j --dependency=afterok:460550 --constraint="epyc7702" --mem=0 RQC.sh
+sbatch --partition=shortq7 -o RQC.o%j -e RQC.e%j --dependency=afterok:460550 --constraint="epyc7702" --mem=0 --mail-type=ALL --mail-user=studivanms@gmail.com RQC.sh
 # --constraint="epyc7702" --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
 
 echo '#!/bin/bash' >zip.sh
 echo gzip -9 dd.counts >>zip.sh
-sbatch --partition=longq7 -o zip.o%j -e zip.e%j zip.sh
+sbatch --partition=longq7 -o zip.o%j -e zip.e%j --mail-type=ALL --mail-user=studivanms@gmail.com zip.sh
 
 FILTERS="-uniqueOnly 1 -remove_bads 1 -minMapQ 20 -minQ 30 -dosnpstat 1 -doHWE 1 -hwe_pval 1e-5 -sb_pval 1e-5 -hetbias_pval 1e-5 -skipTriallelic 1 -minInd 144 -snp_pval 1e-6 -minMaf 0.05"
 TODO="-doMajorMinor 1 -doMaf 1 -doCounts 1 -makeMatrix 1 -doIBS 1 -doCov 1 -doGeno 8 -doBcf 1 -doPost 1 -doGlf 2"

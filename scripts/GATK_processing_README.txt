@@ -79,7 +79,7 @@ gsplit -l 3 -d --additional-suffix=.sh genos2.sh genos2
 
 # does not work with launcher_creator, consider breaking up script and running multiple jobs
 chmod +x *.sh
-sbatch --partition=longq7 -o genos2.o%j -e genos2.e%j genos2.sh # run sbatch command with all the other versions of your script
+sbatch --partition=longq7 -o genos2.o%j -e genos2.e%j --mail-type=ALL --mail-user=studivanms@gmail.com genos2.sh # run sbatch command with all the other versions of your script
 # some large files took several days to complete on KoKo
 
 # Some housekeeping
@@ -117,7 +117,7 @@ echo "gatk --java-options "-Xmx12g" \
        -L intervals.list \
        --sample-name-map vcfs_wgs.list \
        --tmp-dir /mnt/beegfs/home/mstudiva/scratch/tmp" >> vcfs.sh
-sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j -c epyc7702 --mem=0 vcfs.sh
+sbatch --partition=longq7 -o vcfs.o%j -e vcfs.e%j -c epyc7702 --mem=0 --mail-type=ALL --mail-user=studivanms@gmail.com vcfs.sh
 # -c epyc7702 --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
 
 # For some reason, I cannot get gatk to run on KoKo; keep getting out of memory errors
@@ -369,5 +369,5 @@ quit() # to exit R session, answer 'no' to not save workspace
 echo '#!/bin/bash' >R.sh
 echo 'conda activate R' >>R.sh
 echo Rscript GATK_clones.R >>R.sh
-sbatch --partition=shortq7 -o R.o%j -e R.e%j --constraint="epyc7702" --mem=0 R.sh
+sbatch --partition=shortq7 -o R.o%j -e R.e%j --constraint="epyc7702" --mem=0 --mail-type=ALL --mail-user=studivanms@gmail.com R.sh
 # --constraint="epyc7702" --mem=0 specifies a node with 1Tb memory, and allows use of all the memory

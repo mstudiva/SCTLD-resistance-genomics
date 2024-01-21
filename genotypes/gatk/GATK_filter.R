@@ -57,7 +57,7 @@ ReadPosRankSum_rad_snp_passfail <- ggplot(rad_snp_filtered, aes(x=ReadPosRankSum
 ReadPosRankSum_rad_snp_passfail_xlim <- ggplot(rad_snp_filtered, aes(x=ReadPosRankSum, fill=Pass)) + geom_density(alpha=.3) +
   geom_vline(xintercept=c(-8), linewidth=1, colour = c(snps)) + xlim(-5,5)
 
-pdf("Ofav_rad_snp_passfail.pdf", height=20, width=15)
+pdf("ofav_rad_snp_passfail.pdf", height=20, width=15)
 theme_set(theme_gray(base_size = 18))
 grid.arrange(DP_rad_snp_passfail, QD_rad_snp_passfail, FS_rad_snp_passfail, SOR_rad_snp_passfail, MQ_rad_snp_passfail, MQRankSum_rad_snp_passfail, ReadPosRankSum_rad_snp_passfail, ReadPosRankSum_rad_snp_passfail_xlim, nrow=4)
 dev.off()
@@ -99,7 +99,7 @@ ReadPosRankSum_wgs_snp_passfail <- ggplot(wgs_snp_filtered, aes(x=ReadPosRankSum
 ReadPosRankSum_wgs_snp_passfail_xlim <- ggplot(wgs_snp_filtered, aes(x=ReadPosRankSum, fill=Pass)) + geom_density(alpha=.3) +
   geom_vline(xintercept=c(-8), linewidth=1, colour = c(snps)) + xlim(-5,5)
 
-pdf("Ofav_wgs_snp_passfail.pdf", height=20, width=15)
+pdf("ofav_wgs_snp_passfail.pdf", height=20, width=15)
 theme_set(theme_gray(base_size = 18))
 grid.arrange(DP_wgs_snp_passfail, QD_wgs_snp_passfail, FS_wgs_snp_passfail, SOR_wgs_snp_passfail, MQ_wgs_snp_passfail, MQRankSum_wgs_snp_passfail, ReadPosRankSum_wgs_snp_passfail, ReadPosRankSum_wgs_snp_passfail_xlim, nrow=4)
 dev.off()
@@ -129,7 +129,7 @@ ReadPosRankSum_wgs_indel_passfail <- ggplot(wgs_indel_filtered, aes(x=ReadPosRan
 # ReadPosRankSum_wgs_indel_passfail_xlim <- ggplot(wgs_indel_filtered, aes(x=ReadPosRankSum, fill=Pass)) + geom_density(alpha=.3) +
    # geom_vline(xintercept=c(-20), linewidth=1, colour = c(indels)) + xlim(-5,5)
 
-pdf("Ofav_wgs_indel_passfail.pdf", height=10, width=15)
+pdf("ofav_wgs_indel_passfail.pdf", height=10, width=15)
 theme_set(theme_gray(base_size = 18))
 grid.arrange(DP_wgs_indel_passfail, QD_wgs_indel_passfail, FS_wgs_indel_passfail, ReadPosRankSum_wgs_indel_passfail, nrow=2)
 dev.off()

@@ -71,7 +71,7 @@ sbatch downloadReads.slurm
 # Count raw reads
 echo '#!/bin/bash' >rawReads.sh
 echo readCounts.sh -e gz -o Raw >>rawReads.sh
-sbatch -o rawReads.o%j -e rawReads.e%j rawReads.sh --mail-type=ALL --mail-user=studivanms@gmail.com
+sbatch -o rawReads.o%j -e rawReads.e%j --mail-type=ALL --mail-user=studivanms@gmail.com rawReads.sh
 # scp RawReadCounts to local machine
 
 
@@ -95,7 +95,7 @@ sbatch --mem=200GB fastqc.slurm
 # Count raw reads (doesn't work when files are gzipped [.gz])
 echo '#!/bin/bash' >rawReads.sh
 echo readCounts.sh -e gz -o Raw >>rawReads.sh
-sbatch -o rawReads.o%j -e rawReads.e%j rawReads.sh --mail-type=ALL --mail-user=studivanms@gmail.com
+sbatch -o rawReads.o%j -e rawReads.e%j --mail-type=ALL --mail-user=studivanms@gmail.com rawReads.sh
 # scp RawReadCounts to local machine
 
 
@@ -131,8 +131,8 @@ echo "cutadapt -q 15,15 -m 36 -o ${file/.tr0/}.trim $file > ${file/.tr0/}.trimlo
 done
 
 # Non-parallel job submission
-sbatch -o trimse.o%j -e trimse.e%j --mem=200GB trimse.sh
-sbatch -o trimse2.o%j -e trimse2.e%j --mem=200GB trimse2.sh
+sbatch -o trimse.o%j -e trimse.e%j --mem=200GB --mail-type=ALL --mail-user=studivanms@gmail.com trimse.sh
+sbatch -o trimse2.o%j -e trimse2.e%j --mem=200GB --mail-type=ALL --mail-user=studivanms@gmail.com trimse2.sh
 
 conda deactivate
 
@@ -142,7 +142,7 @@ ls -l *.trim | wc -l
 # Counting the trimmed reads
 echo '#!/bin/bash' >cleanReads
 echo readCounts.sh -e trim -o Filt >>cleanReads
-sbatch --mem=200GB cleanReads
+sbatch --mem=200GB --mail-type=ALL --mail-user=studivanms@gmail.com cleanReads
 # scp FiltReadCounts to local machine
 
 
@@ -170,7 +170,7 @@ module load fastqc/v0.11.9
 
 # does not work with launcher_creator, consider breaking up script and running multiple jobs
 chmod +x *.sh
-sbatch -o trim.o%j -e trim.e%j trim.sh # run sbatch command with all the other versions of your script
+sbatch -o trim.o%j -e trim.e%j --mail-type=ALL --mail-user=studivanms@gmail.com trim.sh # run sbatch command with all the other versions of your script
 
 conda deactivate
 
@@ -192,7 +192,7 @@ sbatch --mem=200GB fastqc.slurm
 # Counting the trimmed reads (doesn't work when files are gzipped [.gz])
 echo '#!/bin/bash' >cleanReads
 echo readCounts.sh -e gz -o Filt >>cleanReads
-sbatch --mem=200GB cleanReads
+sbatch --mem=200GB --mail-type=ALL --mail-user=studivanms@gmail.com cleanReads
 cat FiltReadCounts
 # scp FiltReadCounts to local machine
 
@@ -208,7 +208,7 @@ module load samtools-1.10-gcc-8.3.0-khgksad
 echo '#!/bin/bash' >genomeBuild.sh
 echo bowtie2-build Orbicella_faveolata_gen_17.scaffolds.fa OfaveolataGenome >>genomeBuild.sh
 echo samtools faidx Orbicella_faveolata_gen_17.scaffolds.fa >>genomeBuild.sh
-sbatch -o genomeBuild.o%j -e genomeBuild.e%j genomeBuild.sh
+sbatch -o genomeBuild.o%j -e genomeBuild.e%j --mail-type=ALL --mail-user=studivanms@gmail.com genomeBuild.sh
 
 # For GATK (Hard call genotyping) only
 conda activate GATKenv
@@ -228,7 +228,7 @@ scp symbConcatGenome.fasta mstudiva@koko-login.hpc.fau.edu:~/db/symGenome/
 echo '#!/bin/bash' >genomeBuild.sh
 echo bowtie2-build symbConcatGenome.fasta symbConcatGenome >>genomeBuild.sh
 echo samtools faidx symbConcatGenome.fasta >>genomeBuild.sh
-sbatch -o genomeBuild.o%j -e genomeBuild.e%j genomeBuild.sh
+sbatch -o genomeBuild.o%j -e genomeBuild.e%j --mail-type=ALL --mail-user=studivanms@gmail.com genomeBuild.sh
 
 
 #------------------------------
@@ -245,7 +245,7 @@ ls *.sam | wc -l
 
 echo '#!/bin/bash' >mappedReads
 echo readCounts.sh -e al -o Host >>mappedReads
-sbatch --mem=200GB mappedReads
+sbatch --mem=200GB --mail-type=ALL --mail-user=studivanms@gmail.com mappedReads
 # scp HostReadCounts to local machine
 
 >s2b
@@ -288,7 +288,7 @@ ls *.sam | wc -l
 
 echo '#!/bin/bash' >mappedReads
 echo readCounts.sh -e al -o Host >>mappedReads
-sbatch --mem=200GB mappedReads
+sbatch --mem=200GB --mail-type=ALL --mail-user=studivanms@gmail.com mappedReads
 # scp HostReadCounts to local machine
 
 >s2b
@@ -335,7 +335,7 @@ cd ../../mappedReads/symbionts
 # calculate mapping efficiency from these values compared to trimmed reads in Excel
 echo '#!/bin/bash' >mappedZooxReads
 echo readCounts.sh -e zoox -o Zoox >>mappedZooxReads
-sbatch --mem=200GB mappedZooxReads
+sbatch --mem=200GB --mail-type=ALL --mail-user=studivanms@gmail.com mappedZooxReads
 # scp ZooxReadCounts to local machine
 
 module load samtools-1.10-gcc-8.3.0-khgksad
@@ -387,7 +387,7 @@ cd ../../mappedReads/symbionts
 # calculate mapping efficiency from these values compared to trimmed reads in Excel
 echo '#!/bin/bash' >mappedZooxReads
 echo readCounts.sh -e 1.zoox -o Zoox >>mappedZooxReads
-sbatch --mem=200GB mappedZooxReads
+sbatch --mem=200GB --mail-type=ALL --mail-user=studivanms@gmail.com mappedZooxReads
 # scp ZooxReadCounts to local machine
 
 module load samtools-1.10-gcc-8.3.0-khgksad
