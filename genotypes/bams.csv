@@ -6,7 +6,7 @@ s004,wgs,F32,F32,no
 s005,wgs,GB1,GB1_wgs_1,yes
 s006,wgs,GB16,GB16,no
 s007,wgs,GB9,GB9,no
-s008,wgs,M2-AE23,M2-AE23_wgs_1,yes
+s008,wgs,M2-AE23,M2-AE23_wgs,yes
 s009,wgs,OF689,OF689_wgs,yes
 s010,wgs,OF75,OF75,no
 s011,wgs,M8,M8,no
@@ -42,7 +42,7 @@ s040,wgs,OF125,OF125,no
 s041,wgs,AE5,AE5,no
 s042,wgs,GB8,GB8,no
 s043,wgs,GB24,GB24,no
-s044,wgs,GB7,GB7_wgs_1,yes
+s044,wgs,GB7,GB7_wgs,yes
 s045,wgs,OF464,OF464,no
 s046,wgs,OF700,OF700_wgs,yes
 s047,wgs,UK 36,UK 36,no
@@ -101,7 +101,7 @@ s099,wgs,OF373,OF373,no
 s100,wgs,15-111,15-111,no
 s101,wgs,OF602,OF602,no
 s102,wgs,OF679,OF679_wgs,yes
-s103,wgs,OF696,OF696_wgs,no
+s103,wgs,OF696,OF696,no
 s104,wgs,OF628,OF628,no
 s105,wgs,GB28,GB28,no
 s106,wgs,GB25,GB25,no
@@ -355,12 +355,12 @@ P1E2,2brad,OF704,OF704_rad_2,yes
 P1G3,2brad,M1,M1,no
 P201,2brad,F12,F12_rad,yes
 P23A,2brad,OF689,OF689_rad_2,yes
-P29B,2brad,M2-AE23,M2-AE23_wgs_2,yes
+P29B,2brad,M2-AE23,M2-AE23_rad,yes
 P2A8,2brad,mis6,mis6,no
 P2H5,2brad,mis3,mis3,no
 P62,2brad,mis1,mis1,no
 P67,2brad,mis2,mis2,no
-P89,2brad,GB7,GB7_wgs_2,yes
+P89,2brad,GB7,GB7_rad,yes
 sperm_2,2brad,sperm,sperm_rad_2,yes
 sperm_3,2brad,sperm,sperm_rad_3,yes
 sperm,2brad,sperm,sperm_rad_1,yes

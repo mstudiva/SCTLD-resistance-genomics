@@ -1,4 +1,4 @@
-## Genome Analysis ToolKit (GATK) pipeline, version January 13, 2024
+## Genome Analysis ToolKit (GATK) pipeline, version February 17, 2024
 # Created by Michael Studivan (studivanms@gmail.com) based on GATK best practices
 https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
@@ -363,11 +363,13 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load("dendextend", "ggdendro", "tidyverse")
 quit() # to exit R session, answer 'no' to not save workspace
 
-# scp GATK_clones.R script, ofav_wgs_snp_passing.vcf.gz, bams_wgs.csv, and techReps.csv to KoKo
+# scp GATK_clones_koko.R script, ofav_wgs_snp_passing.vcf.gz, bams_wgs.csv, and techReps_wgs.csv to KoKo
 
 # Now create job script to run R scipt
 echo '#!/bin/bash' >R.sh
 echo 'conda activate R' >>R.sh
-echo Rscript GATK_clones.R >>R.sh
+echo Rscript GATK_clones_koko.R >>R.sh
 sbatch --partition=shortq7 -o R.o%j -e R.e%j --constraint="epyc7702" --mem=0 --mail-type=ALL --mail-user=studivanms@gmail.com R.sh
 # --constraint="epyc7702" --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
+
+# Once completed, scp files (ofav_wgs_snp_passing.gds, mlgFilter_gatk_wgs.pdf, ofav_gatk_wgs_mlg.csv) to your local machine and continue with GATK_clones.R to generate IBS dendrogram

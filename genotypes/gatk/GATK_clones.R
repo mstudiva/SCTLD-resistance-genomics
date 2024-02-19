@@ -1,5 +1,6 @@
 #### packages ####
 
+# install.packages("BiocManager")
 # if (!requireNamespace("BiocManager", quietly = TRUE))
 #   BiocManager::install(version = "3.18")
 # BiocManager::install("SNPRelate")
@@ -28,14 +29,10 @@ library(ape)
 
 # Reading in vcf files
 vcf_rad <- read.vcfR("ofav_2brad_snp_passing.vcf.gz") # 2bRAD 
-vcf_wgs <- read.vcfR("ofav_wgs_snp_passing.vcf.gz") # WGS 
 
 # Convert vcf to gds
 geno_rad <- extract.gt(vcf_rad, as.numeric = T) # 2bRAD 
 snpgdsCreateGeno("ofav_2brad_snp_passing.gds", geno_rad) 
-
-geno_wgs <- extract.gt(vcf_wgs, as.numeric = T) # WGS 
-snpgdsCreateGeno("ofav_wgs_snp_passing.gds", geno_wgs) 
 
 # Creating IBS matrix from gds object
 set.seed(100)
@@ -103,8 +100,8 @@ cloneDendPoints_wgs$geno = cloneGeno_wgs[order.dendrogram(cloneDend_wgs)]
 cloneDendPoints_wgs$reps=cloneReps_wgs[order.dendrogram(cloneDend_wgs)]
 rownames(cloneDendPoints_wgs) = cloneDendPoints_wgs$label
 
-# Making points at the leaves to place symbols for sequencing pipeline
-point_rad = as.vector(NA) # 2bRAD 
+# Making points at the ends of branches so sample IDs line up
+point_rad = as.vector(NA) # 2bRAD
 for(i in 1:nrow(cloneDData_rad$segments)) {
   if (cloneDData_rad$segments$yend[i] == 0) {
     point_rad[i] = cloneDData_rad$segments$y[i] - 0.01
@@ -112,7 +109,7 @@ for(i in 1:nrow(cloneDData_rad$segments)) {
     point_rad[i] = NA}}
 cloneDendPoints_rad$y = point_rad[!is.na(point_rad)]
 
-point_wgs = as.vector(NA)  # WGS 
+point_wgs = as.vector(NA)  # WGS
 for(i in 1:nrow(cloneDData_wgs$segments)) {
   if (cloneDData_wgs$segments$yend[i] == 0) {
     point_wgs[i] = cloneDData_wgs$segments$y[i] - 0.01
@@ -121,18 +118,18 @@ for(i in 1:nrow(cloneDData_wgs$segments)) {
 cloneDendPoints_wgs$y = point_wgs[!is.na(point_wgs)]
 
 # Reading in metadata for technical replicates (sequenced duplicates)
-techReps <- c(read.csv("../techReps.csv", head = F))
+techReps_rad <- c(read.csv("../techReps_rad.csv", head = F)) # 2bRAD
+
+techReps_wgs <- c(read.csv("../techReps_wgs.csv", head = F)) # WGS
 
 # Plotting dendrogram based on IBS distance
 cloneDendA_rad = ggplot() + # 2bRAD 
   geom_segment(data = segment(cloneDData_rad), aes(x = x, y = y, xend = xend, yend = yend2), size = 0.5) +
   geom_point(data = cloneDendPoints_rad, aes(x = x, y = y, fill = geno), size = 4, stroke = 0.25) +
-  #scale_fill_brewer(palette = "Dark2", name = "Population") +
-  # scale_fill_manual(values = flPal, name= "Population")+
   # scale_shape_manual(values = c(21, 22), name = "Sequencing Pipeline")+
   # geom_hline(yintercept = 0.75, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold
-  geom_text(data = subset(cloneDendPoints_rad, subset = reps %in% techReps$V1), aes(x = x, y = (y - .025), label = reps), angle = 90) + # spacing technical replicates further from leaf
-  geom_text(data = subset(cloneDendPoints_rad, subset = !reps %in% techReps$V1), aes(x = x, y = (y - .010), label = geno), angle = 90) +
+  geom_text(data = subset(cloneDendPoints_rad, subset = reps %in% techReps_rad$V1), aes(x = x, y = (y - .0275), label = reps), angle = 90) + # spacing technical replicates further from leaf
+  geom_text(data = subset(cloneDendPoints_rad, subset = !reps %in% techReps_rad$V1), aes(x = x, y = (y - .0075), label = geno), angle = 90) +
   labs(y = "Genetic distance (1 - IBS)") +
   guides(fill = guide_legend(override.aes = list(shape = 22)))+
   theme_classic()
@@ -156,17 +153,15 @@ cloneDend_rad = cloneDendA_rad + theme(
   legend.text = element_text(size = 10),
   legend.position = "none")
 cloneDend_rad
-ggsave("cloneDend_gatk_2brad.pdf", plot = cloneDend_rad, height = 7, width = 28, units = "in", dpi = 300) # 2bRAD 
+ggsave("cloneDend_gatk_2brad.pdf", plot = cloneDend_rad, height = 8, width = 28, units = "in", dpi = 300) # 2bRAD 
 
 cloneDendA_wgs = ggplot() +  # WGS 
   geom_segment(data = segment(cloneDData_wgs), aes(x = x, y = y, xend = xend, yend = yend2), size = 0.5) +
   geom_point(data = cloneDendPoints_wgs, aes(x = x, y = y, fill = geno), size = 4, stroke = 0.25) +
-  #scale_fill_brewer(palette = "Dark2", name = "Population") +
-  # scale_fill_manual(values = flPal, name= "Population")+
   # scale_shape_manual(values = c(21, 22), name = "Sequencing Pipeline")+
-  # geom_hline(yintercept = 0.75, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold
-  geom_text(data = subset(cloneDendPoints_wgs, subset = reps %in% techReps$V1), aes(x = x, y = (y - .025), label = reps), angle = 90) + # spacing technical replicates further from leaf
-  geom_text(data = subset(cloneDendPoints_wgs, subset = !reps %in% techReps$V1), aes(x = x, y = (y - .010), label = geno), angle = 90) +
+  geom_hline(yintercept = 0.048, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold based on IBS distance between technical replicates
+  geom_text(data = subset(cloneDendPoints_wgs, subset = reps %in% techReps_wgs$V1), aes(x = x, y = (y - .0275), label = reps), angle = 90) + # spacing technical replicates further from leaf
+  geom_text(data = subset(cloneDendPoints_wgs, subset = !reps %in% techReps_wgs$V1), aes(x = x, y = (y - .0075), label = geno), angle = 90) +
   labs(y = "Genetic distance (1 - IBS)") +
   guides(fill = guide_legend(override.aes = list(shape = 22)))+
   theme_classic()
@@ -189,7 +184,7 @@ cloneDend_wgs = cloneDendA_wgs + theme(
   legend.text = element_text(size = 10),
   legend.position = "none")
 cloneDend_wgs
-ggsave("cloneDend_gatk_wgs.pdf", plot = cloneDend_wgs, height = 7, width = 28, units = "in", dpi = 300) # WGS 
+ggsave("cloneDend_gatk_wgs.pdf", plot = cloneDend_wgs, height = 8, width = 28, units = "in", dpi = 300) # WGS 
 
 
 #### Multi-locus genotyping ####
@@ -218,28 +213,3 @@ MLG_rad <- slot(mlg_rad, "mlg") # Pulling the 'mlg' slot from the mlg object
 MLGeno_rad <- as.data.frame(MLG_rad$contracted) # Convert the slot data to a data.frame
 cloneMeta_rad_mlg <- cbind(cloneMeta_rad, MLGeno_rad) # Adding MLGs to metadata file
 write.csv(cloneMeta_rad_mlg, file = "ofav_gatk_2brad_mlg.csv") # Writing to file
-
-# Creating a genind object for poppr
-genlight_wgs <- vcfR2genlight(vcf_wgs) # WGS 
-
-# Converting to snpclone object
-snpclone_wgs <- poppr::as.snpclone(genlight_wgs) 
-
-# Tests for best threshold of clonal detection
-pdf(file = "mlgFilter_gatk_wgs.pdf") # Saves resulting plots
-threshtest_wgs <- filter_stats(
-  snpclone_wgs,
-  distance = bitwise.dist,
-  plot = TRUE,
-  threads = 1L)
-dev.off()
-# Prints the best threshold value
-print(thresh_wgs <- cutoff_predictor(threshtest_wgs$farthest$THRESHOLDS)) # 0.05288876
-mlg.filter(snpclone_wgs, threads = 1L) <- thresh_wgs # Applies the filter based on the threshold determined above
-
-# Multi-locus genotype assignments
-mlg_wgs <- slot(snpclone_wgs, "mlg") # Pulling the 'mlg' slot from the snpclone object
-MLG_wgs <- slot(mlg_wgs, "mlg") # Pulling the 'mlg' slot from the mlg object
-MLGeno_wgs <- as.data.frame(MLG_wgs$contracted) # Convert the slot data to a data.frame
-cloneMeta_wgs_mlg <- cbind(cloneMeta_wgs, MLGeno_wgs) # Adding MLGs to metadata file
-write.csv(cloneMeta_wgs_mlg, file = "ofav_gatk_wgs_mlg.csv") # Writing to file
