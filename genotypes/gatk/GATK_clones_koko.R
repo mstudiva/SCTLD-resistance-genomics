@@ -45,17 +45,25 @@ snpclone_wgs <- poppr::as.snpclone(genlight_wgs)
 
 #### Multi-locus genotyping ####
 
+# Creating a dissimilarity matrix
+dist_wgs <- bitwise.dist(snpclone_wgs)
+write.csv(as.matrix(dist_wgs), file = "ofav_wgs_snp_passing_dist.csv")
+# Look for the highest genetic distance value between technical replicates, and plug that number into the mlg.filter code below
+
 # Tests for best threshold of clonal detection
-pdf(file = "mlgFilter_gatk_wgs.pdf") # Saves resulting plots
-threshtest_wgs <- filter_stats(
-  snpclone_wgs,
-  distance = bitwise.dist,
-  plot = TRUE,
-  threads = 1L)
-dev.off()
+# Commenting out as this method set too high of a threshold and lumped together a bunch of unrelated genotypes
+# pdf(file = "mlgFilter_gatk_wgs.pdf") # Saves resulting plots
+# threshtest_wgs <- filter_stats(
+#   snpclone_wgs,
+#   distance = bitwise.dist,
+#   plot = TRUE,
+#   threads = 1L)
+# dev.off()
 # Prints the best threshold value
-print(thresh_wgs <- cutoff_predictor(threshtest_wgs$farthest$THRESHOLDS)) # 0.05288876
-mlg.filter(snpclone_wgs, threads = 1L) <- thresh_wgs # Applies the filter based on the threshold determined above
+# print(thresh_wgs <- cutoff_predictor(threshtest_wgs$farthest$THRESHOLDS)) # 0.05288876
+
+# mlg.filter(snpclone_wgs, threads = 1L) <- thresh_wgs # Applies the filter based on the threshold determined above
+mlg.filter(snpclone_wgs, threads = 1L) <- 0.021821604 # Applies the filter based on the dissimilarity matrix
 
 # Multi-locus genotype assignments
 mlg_wgs <- slot(snpclone_wgs, "mlg")

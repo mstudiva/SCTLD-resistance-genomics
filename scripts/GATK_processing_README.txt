@@ -1,4 +1,4 @@
-## Genome Analysis ToolKit (GATK) pipeline, version February 17, 2024
+## Genome Analysis ToolKit (GATK) pipeline, version March 10, 2024
 # Created by Michael Studivan (studivanms@gmail.com) based on GATK best practices
 https://gatk.broadinstitute.org/hc/en-us/articles/360035535932-Germline-short-variant-discovery-SNPs-Indels-
 
@@ -372,4 +372,6 @@ echo Rscript GATK_clones_koko.R >>R.sh
 sbatch --partition=shortq7 -o R.o%j -e R.e%j --constraint="epyc7702" --mem=0 --mail-type=ALL --mail-user=studivanms@gmail.com R.sh
 # --constraint="epyc7702" --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
 
-# Once completed, scp files (ofav_wgs_snp_passing.gds, mlgFilter_gatk_wgs.pdf, ofav_gatk_wgs_mlg.csv) to your local machine and continue with GATK_clones.R to generate IBS dendrogram
+# Once completed, scp the dissimilarity matrix (ofav_wgs_snp_passing_dist.csv) to your local machine and determine the highest dissimilarity value between technical replicates
+# Then edit the mlg.filter line to add in the dissimilarity value (+1e-9) as the threshold, and rerun the job script
+# Once completed a second time, scp files (ofav_wgs_snp_passing.gds, mlgFilter_gatk_wgs.pdf, ofav_gatk_wgs_mlg.csv) to your local machine and continue with GATK_clones.R to generate dendrogram
