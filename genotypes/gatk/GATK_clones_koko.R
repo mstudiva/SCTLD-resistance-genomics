@@ -63,7 +63,7 @@ write.csv(as.matrix(dist_wgs), file = "ofav_wgs_snp_passing_dist.csv")
 # print(thresh_wgs <- cutoff_predictor(threshtest_wgs$farthest$THRESHOLDS)) # 0.05288876
 
 # mlg.filter(snpclone_wgs, threads = 1L) <- thresh_wgs # Applies the filter based on the threshold determined above
-mlg.filter(snpclone_wgs, threads = 1L) <- 0.021821604 # Applies the filter based on the dissimilarity matrix
+mlg.filter(snpclone_wgs, threads = 1L) <- 0.015 # Applies the filter based on the dissimilarity matrix
 
 # Multi-locus genotype assignments
 mlg_wgs <- slot(snpclone_wgs, "mlg")
