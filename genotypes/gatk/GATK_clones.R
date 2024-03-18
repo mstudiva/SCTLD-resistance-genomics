@@ -73,6 +73,9 @@ write.csv(cloneMeta_rad_mlg, file = "ofav_gatk_2brad_mlg.csv") # Writing to file
 
 #### Dendrogram ####
 
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load("dendextend", "ggdendro", "tidyverse")
+
 # Reading in dissimilarity matrices
 cloneMa_rad <- t(as.matrix(read.csv("ofav_2brad_snp_passing_dist.csv", row.names = 1, head = T)))
 
@@ -186,7 +189,7 @@ cloneDendA_wgs = ggplot() +  # WGS
   geom_segment(data = segment(cloneDData_wgs), aes(x = x, y = y, xend = xend, yend = yend2), size = 0.5) +
   geom_point(data = cloneDendPoints_wgs, aes(x = x, y = y, fill = geno), size = 4, stroke = 0.25) +
   # scale_shape_manual(values = c(21, 22), name = "Sequencing Pipeline")+
-  geom_hline(yintercept = 0.014201934, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold based on maximum genetic dissimilarity between technical replicates
+  geom_hline(yintercept = 0.015, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold based on maximum genetic dissimilarity between technical replicates
   geom_text(data = subset(cloneDendPoints_wgs, subset = reps %in% techReps_wgs$V1), aes(x = x, y = (y - .0275), label = reps), angle = 90) + # spacing technical replicates further from leaf
   geom_text(data = subset(cloneDendPoints_wgs, subset = !reps %in% techReps_wgs$V1), aes(x = x, y = (y - .0075), label = geno), angle = 90) +
   labs(y = "Genetic distance") +

@@ -340,6 +340,7 @@ zgrep -v "^#" ofav_wgs_indel_filtered.vcf.gz | cut -f 7 | sort | uniq -c > wgs_i
     --output ofav_wgs_indel_passing.vcf.gz
 
 # Now, use the R script GATK_clones.R to visualize genotype relatedness among samples
+# and identify multi-locus genotypes
 
 
 #------------------------------
