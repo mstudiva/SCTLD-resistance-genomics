@@ -191,3 +191,27 @@ sbatch --partition=shortq7 --mem=200GB -o export.o%j -e export.e%j export.sh
 # scp ofav_wgs_gwas.ped to your local machine
 
 # Continue with the R script GWAS_analysis.R
+
+
+#------------------------------
+## GWAS_analysis.R on KoKo
+
+# Let's see if we can speed up the Structure analysis
+# scp GWAS_analysis_koko.R to your working directory
+
+# Start with our handy dandy R conda environment
+conda activate R
+R # to activate R
+
+# Installing packages
+if (!require("BiocManager", quietly = TRUE))
+   install.packages("BiocManager")
+BiocManager::install("LEA")
+quit() # to exit R session, answer 'no' to not save workspace
+
+# Now create job script to run R scipt
+echo '#!/bin/bash' >Rgwas.sh
+echo 'conda activate R' >>Rgwas.sh
+echo Rscript GWAS_analysis_koko.R >>Rgwas.sh
+sbatch --partition=shortq7 -o Rgwas.o%j -e Rgwas.e%j --constraint="epyc7702" --mem=0 --mail-type=ALL --mail-user=studivanms@gmail.com Rgwas.sh
+# --constraint="epyc7702" --mem=0 specifies a node with 1Tb memory, and allows use of all the memory
