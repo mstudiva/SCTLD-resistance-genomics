@@ -192,7 +192,7 @@ sbatch --partition=shortq7 --mem=200GB -o export.o%j -e export.e%j export.sh
 
 # Start with our handy dandy R conda environment
 conda activate R
-R # to activate R
+R # to activate R shell
 
 # Now create job script to run R scipt
 echo '#!/bin/bash' >Rgwas.sh
