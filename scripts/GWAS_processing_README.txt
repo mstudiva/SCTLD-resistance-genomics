@@ -177,7 +177,7 @@ sbatch --partition=shortq7 --mem=200GB -o het3.o%j -e het3.e%j het3.sh
 
 echo '#!/bin/sh' > export.sh
 echo 'module load plink-1.07-gcc-8.3.0-azf4a6i' >> export.sh
-echo 'plink --bfile ofav_wgs_snp_passing_noclones_filtered_lowmaf_hwe_het --recode vcf --out ofav_wgs_gwas' >>export.sh
+echo 'plink --bfile ofav_wgs_snp_passing_noclones_filtered_lowmaf_hwe_het --recode --out ofav_wgs_gwas' >>export.sh
 sbatch --partition=shortq7 --mem=200GB -o export.o%j -e export.e%j export.sh
 # scp ofav_wgs_gwas.ped and ofav_wgs_gwas.map to your local machine
 
