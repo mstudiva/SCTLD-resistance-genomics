@@ -1,5 +1,5 @@
 
-## Analysis of Next-Generation Sequencing Data (ANGSD) pipeline, version January 1, 2024
+## Analysis of Next-Generation Sequencing Data (ANGSD) pipeline, version May 21, 2024
 # Created by Michael Studivan (studivanms@gmail.com) based on 2bRAD pipeline by Ryan Eckert (reckert2017@fau.edu)
 https://ryaneckert.github.io/Stephanocoenia_FKNMS_PopGen/code/
 WGS pipeline developed from GATK best practices
@@ -68,9 +68,10 @@ echo angsd -b bamsClones -GL 1 $FILTERS $TODO -P 1 -out radClones >>radClones.sh
 
 sbatch --mem=200GB -o radClones.o%j -e radClones.e%j --mail-type=ALL --mail-user=studivanms@gmail.com --partition=shortq7 radClones.sh
 
-# scp ibs matrix to local machine
+# scp ibs matrix and bcf file to local machine
 cd local/directory/
 scp mstudiva@koko-login.hpc.fau.edu:~/project/directory/ANGSD/radClones.ibsMat .
+scp mstudiva@koko-login.hpc.fau.edu:~/project/directory/ANGSD/radClones.bcf .
 
 
 #------------------------------

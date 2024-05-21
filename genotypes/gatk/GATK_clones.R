@@ -43,6 +43,11 @@ snpclone_rad <- poppr::as.snpclone(genlight_rad)
 
 #### Multi-locus genotyping ####
 
+# Reading in metadata
+cloneMeta_rad = read.csv("../bams_2brad.csv", header = T) # 2bRAD 
+
+cloneMeta_wgs = read.csv("../bams_wgs.csv", header = T) # WGS 
+
 # Creating a dissimilarity matrix
 dist_rad <- bitwise.dist(snpclone_rad)
 write.csv(as.matrix(dist_rad), file = "ofav_2brad_snp_passing_dist.csv")
@@ -61,7 +66,8 @@ write.csv(as.matrix(dist_rad), file = "ofav_2brad_snp_passing_dist.csv")
 # print(thresh_rad <- cutoff_predictor(threshtest_rad$farthest$THRESHOLDS)) # 0.009723445
 
 # mlg.filter(snpclone_rad, threads = 1L) <- thresh_rad # Applies the filter based on the threshold determined above
-mlg.filter(snpclone_rad, threads = 1L) <- thresh_rad # Applies the filter based on the dissimilarity matrix
+# mlg.filter(snpclone_rad, threads = 1L) <- 0.071 # Applies the filter based on the dissimilarity matrix
+mlg.filter(snpclone_rad, threads = 1L) <- 0.027 # Applies the filter based on the dissimilarity matrix
 
 # Multi-locus genotype assignments
 mlg_rad <- slot(snpclone_rad, "mlg") # Pulling the 'mlg' slot from the snpclone object
@@ -80,11 +86,6 @@ pacman::p_load("dendextend", "ggdendro", "tidyverse")
 cloneMa_rad <- t(as.matrix(read.csv("ofav_2brad_snp_passing_dist.csv", row.names = 1, head = T)))
 
 cloneMa_wgs <- t(as.matrix(read.csv("ofav_wgs_snp_passing_dist.csv", row.names = 1, head = T)))
-
-# Reading in metadata
-cloneMeta_rad = read.csv("../bams_2brad.csv", header = T) # 2bRAD 
-
-cloneMeta_wgs = read.csv("../bams_wgs.csv", header = T) # WGS 
 
 # Creating row and column names for dissimilarity matrix
 dimnames(cloneMa_rad) = list(cloneMeta_rad[,1],cloneMeta_rad[,1]) # 2bRAD 
@@ -157,7 +158,8 @@ cloneDendA_rad = ggplot() + # 2bRAD
   geom_segment(data = segment(cloneDData_rad), aes(x = x, y = y, xend = xend, yend = yend2), size = 0.5) +
   geom_point(data = cloneDendPoints_rad, aes(x = x, y = y, fill = geno), size = 4, stroke = 0.25) +
   # scale_shape_manual(values = c(21, 22), name = "Sequencing Pipeline")+
-  # geom_hline(yintercept = 0.75, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold based on maximum genetic dissimilarity between technical replicates
+  # geom_hline(yintercept = 0.071, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold based on maximum genetic dissimilarity between technical replicates
+  geom_hline(yintercept = 0.027, color = "red", lty = 5, size = 0.75) + # creating a dashed line to indicate a clonal distance threshold based on maximum genetic dissimilarity between technical replicates
   geom_text(data = subset(cloneDendPoints_rad, subset = reps %in% techReps_rad$V1), aes(x = x, y = (y - .0275), label = reps), angle = 90) + # spacing technical replicates further from leaf
   geom_text(data = subset(cloneDendPoints_rad, subset = !reps %in% techReps_rad$V1), aes(x = x, y = (y - .0075), label = geno), angle = 90) +
   labs(y = "Genetic distance") +
