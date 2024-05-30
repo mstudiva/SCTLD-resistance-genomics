@@ -73,6 +73,8 @@ cd local/directory/
 scp mstudiva@koko-login.hpc.fau.edu:~/project/directory/ANGSD/radClones.ibsMat .
 scp mstudiva@koko-login.hpc.fau.edu:~/project/directory/ANGSD/radClones.bcf .
 
+# Convert bcf to vcf with bcftools
+bcftools convert radClones.bcf -O z -o radClones.vcf.gz
 
 #------------------------------
 # WGS-specific settings
