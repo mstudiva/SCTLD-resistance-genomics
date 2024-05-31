@@ -73,8 +73,6 @@ cd local/directory/
 scp mstudiva@koko-login.hpc.fau.edu:~/project/directory/ANGSD/radClones.ibsMat .
 scp mstudiva@koko-login.hpc.fau.edu:~/project/directory/ANGSD/radClones.bcf .
 
-# Convert bcf to vcf with bcftools
-bcftools convert radClones.bcf -O z -o radClones.vcf.gz
 
 #------------------------------
 # WGS-specific settings
@@ -108,4 +106,27 @@ scp mstudiva@koko-login.hpc.fau.edu:~/project/directory/ANGSD/wgsClones.ibsMat .
 
 
 #------------------------------
-# Next, run ANGSD_clones.R script
+# Next, run ANGSD_clones.R script, then return here once finished
+
+
+#------------------------------
+# Removing clones
+
+mkdir clones
+mv radClones* clones
+
+ls *.bam > bamsNoClones
+
+cat bamsClones | grep -v 'CPR_201.trim.bt2.bam\|CPR_202.trim.bt2.bam\|CPR_203.trim.bt2.bam\|CPR_204.trim.bt2.bam\|CPR_207.trim.bt2.bam\|CPR_210_2.trim.bt2.bam\|CPR_210_3.trim.bt2.bam\|CPR_210.trim.bt2.bam\|CPR_212.trim.bt2.bam\|CPR_213.trim.bt2.bam\|CPR_215.trim.bt2.bam\|CPR_221.trim.bt2.bam\|CPR_222.trim.bt2.bam\|CPR_226_3.trim.bt2.bam\|CPR_226.trim.bt2.bam\|CPR_229.trim.bt2.bam\|CPR_234.trim.bt2.bam\|CPR_236.trim.bt2.bam\|CPR_238.trim.bt2.bam\|CPR_239.trim.bt2.bam\|CPR_244.trim.bt2.bam\|CPR_247.trim.bt2.bam\|CPR_248.trim.bt2.bam\|CPR_249.trim.bt2.bam\|CPR_254.trim.bt2.bam\|CPR_262.trim.bt2.bam\|CPR_267.trim.bt2.bam\|CPR_275.trim.bt2.bam\|CPR_284.trim.bt2.bam\|CPR_286.trim.bt2.bam\|CPR_287.trim.bt2.bam\|CPR_289.trim.bt2.bam\|CPR_291.trim.bt2.bam\|CPR_375_2.trim.bt2.bam\|CPR_375.trim.bt2.bam\|CPR_376_2.trim.bt2.bam\|CPR_376.trim.bt2.bam\|CPR_377.trim.bt2.bam\|CPR_383.trim.bt2.bam\|CPR_P1D12.trim.bt2.bam\|CPR_P1E2.trim.bt2.bam\|CPR_P23A.trim.bt2.bam\|CPR_sperm_2.trim.bt2.bam\|CPR_sperm_3.trim.bt2.bam' >bamsNoClones
+
+module load angsd-0.933-gcc-9.2.0-65d64pp
+FILTERS="-uniqueOnly 1 -remove_bads 1 -minMapQ 20 -minQ 30 -dosnpstat 1 -doHWE 1 -hwe_pval 1e-5 -sb_pval 1e-5 -hetbias_pval 1e-5 -skipTriallelic 1 -minInd 112 -snp_pval 1e-6 -minMaf 0.05"
+TODO="-doMajorMinor 1 -doMaf 1 -doCounts 1 -makeMatrix 1 -doIBS 1 -doCov 1 -doGeno 8 -doBcf 1 -doPost 1 -doGlf 2"
+
+echo '#!/bin/bash' > radNoClones.sh
+echo srun angsd -b bamsNoClones -GL 1 $FILTERS $TODO -P 1 -out radNoClones >> radNoClones.sh
+sbatch --mem=200GB -o radNoClones.o%j -e radNoClones.e%j -p shortq7 --mail-type=ALL --mail-user=studivanms@gmail.com radNoClones.sh
+
+# How man SNPs are there?
+grep "filtering:" radNoClones.e*
+# Number of sites retained after filtering: 10660
