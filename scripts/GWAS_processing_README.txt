@@ -1,4 +1,4 @@
-## Genome-Wide Association Study (GWAS) pipeline, version April 1, 2024
+## Genome-Wide Association Study (GWAS) pipeline, version May 31, 2024
 # Created by Michael Studivan (studivanms@gmail.com) based on Andries Marees' GitHub and Vollmer et al. 2023 (Science)
 https://github.com/MareesAT/GWA_tutorial/
 https://doi.org/10.1126/science.adi3601
@@ -19,43 +19,77 @@ module load bcftools-1.9-gcc-8.3.0-gjzr3wl
 module load vcftools-0.1.14-gcc-8.3.0-safy5vc
 module load plink-1.07-gcc-8.3.0-azf4a6i
 
-# Indexes the vcf file for faster processing
+# Indexes the vcf file for faster processing (WGS)
 echo '#!/bin/sh' > index.sh
 echo 'module load bcftools-1.9-gcc-8.3.0-gjzr3wl' >> index.sh
 echo 'bcftools index ofav_wgs_snp_passing.vcf.gz' >> index.sh
 sbatch --partition=shortq7 -o index.o%j -e index.e%j index.sh
 
-# Convert vcf to PLINK data format
+# Indexes the vcf file for faster processing (2bRAD)
+echo '#!/bin/sh' > index.sh
+echo 'module load bcftools-1.9-gcc-8.3.0-gjzr3wl' >> index.sh
+echo 'bcftools index ofav_2brad_snp_passing.vcf.gz' >> index.sh
+sbatch --partition=shortq7 -o index.o%j -e index.e%j index.sh
+
+# Convert vcf to PLINK data format (WGS)
 echo '#!/bin/sh' > plink.sh
 echo 'module load vcftools-0.1.14-gcc-8.3.0-safy5vc' >> plink.sh
 echo 'vcftools --gzvcf ofav_wgs_snp_passing.vcf.gz --plink --chrom-map scaffolds_rename.txt --out ofav_wgs_snp_passing' >> plink.sh
 sbatch --partition=shortq7 --mem=200GB -o plink.o%j -e plink.e%j plink.sh
 
-# Missingness per individual and per SNP, and make histograms using PLINK
+# Convert vcf to PLINK data format (2bRAD)
+echo '#!/bin/sh' > plink.sh
+echo 'module load vcftools-0.1.14-gcc-8.3.0-safy5vc' >> plink.sh
+echo 'vcftools --gzvcf ofav_2brad_snp_passing.vcf.gz --plink --chrom-map scaffolds_rename.txt --out ofav_2brad_snp_passing' >> plink.sh
+sbatch --partition=shortq7 --mem=200GB -o plink.o%j -e plink.e%j plink.sh
+
+# Missingness per individual and per SNP, and make histograms using PLINK (WGS)
 echo '#!/bin/sh' > missing.sh
 echo 'module load plink-1.07-gcc-8.3.0-azf4a6i' >> missing.sh
 echo 'plink --file ofav_wgs_snp_passing --missing' >> missing.sh
+sbatch --partition=shortq7 --mem=200GB -o missing.o%j -e missing.e%j missing.sh
+
+# Missingness per individual and per SNP, and make histograms using PLINK (2bRAD)
+echo '#!/bin/sh' > missing.sh
+echo 'module load plink-1.07-gcc-8.3.0-azf4a6i' >> missing.sh
+echo 'plink --file ofav_2brad_snp_passing --missing' >> missing.sh
 sbatch --partition=shortq7 --mem=200GB -o missing.o%j -e missing.e%j missing.sh
 
 # scp plink.imiss and plink.lmiss to your local machine for individuals missing SNP loci and SNP loci missing individuals, respectively
 # Use plink.imiss specifically to determine which clone-mates should be removed (remove the clonal genotypes with the most missing data)
 # Create a single-column text file containing all the clonal samples to remove and scp it to your working directory
 
-# Removing all but one of each of the clonal genotypes
+# Removing all but one of each of the clonal genotypes (WGS)
 echo '#!/bin/sh' > noclones.sh
 echo 'module load vcftools-0.1.14-gcc-8.3.0-safy5vc' >> noclones.sh
-echo 'vcftools --gzvcf ofav_wgs_snp_passing.vcf.gz --remove clones_remove.txt --plink --chrom-map scaffolds_rename.txt --out ofav_wgs_snp_passing_noclones' >> noclones.sh
+echo 'vcftools --gzvcf ofav_wgs_snp_passing.vcf.gz --remove clones_remove_wgs.txt --plink --chrom-map scaffolds_rename.txt --out ofav_wgs_snp_passing_noclones' >> noclones.sh
 sbatch --partition=shortq7 --mem=200GB -o noclones.o%j -e noclones.e%j noclones.sh
 
-# Exporting the clones-removed file as .vcf.gz for later
+# Removing all but one of each of the clonal genotypes (2bRAD)
+echo '#!/bin/sh' > noclones2.sh
+echo 'module load vcftools-0.1.14-gcc-8.3.0-safy5vc' >> noclones.sh
+echo 'vcftools --gzvcf ofav_2brad_snp_passing.vcf.gz --remove clones_remove_2brad.txt --plink --chrom-map scaffolds_rename.txt --out ofav_2brad_snp_passing_noclones' >> noclones.sh
+sbatch --partition=shortq7 --mem=200GB -o noclones.o%j -e noclones.e%j noclones.sh
+
+# Exporting the clones-removed file as .vcf.gz for later (WGS)
 echo '#!/bin/sh' > exportvcf.sh
 echo 'module load vcftools-0.1.14-gcc-8.3.0-safy5vc' >> exportvcf.sh
-echo 'vcftools --gzvcf ofav_wgs_snp_passing.vcf.gz --remove clones_remove.txt --recode --out ofav_wgs_snp_passing_noclones' >> exportvcf.sh
+echo 'vcftools --gzvcf ofav_wgs_snp_passing.vcf.gz --remove clones_remove_wgs.txt --recode --out ofav_wgs_snp_passing_noclones' >> exportvcf.sh
 sbatch --partition=shortq7 --mem=200GB -o exportvcf.o%j -e exportvcf.e%j exportvcf.sh
-# scp ofav_wgs_snp_passing_noclones.vcf to your local machine
+# scp ofav_wgs_snp_passing_noclones.recode.vcf to your local machine
 
 bgzip -c ofav_wgs_snp_passing_noclones.recode.vcf > ofav_wgs_snp_passing_noclones.vcf.gz
 tabix -p vcf ofav_wgs_snp_passing_noclones.vcf.gz
+
+# Exporting the clones-removed file as .vcf.gz for later (2bRAD)
+echo '#!/bin/sh' > exportvcf.sh
+echo 'module load vcftools-0.1.14-gcc-8.3.0-safy5vc' >> exportvcf.sh
+echo 'vcftools --gzvcf ofav_2brad_snp_passing.vcf.gz --remove clones_remove_2brad.txt --recode --out ofav_2brad_snp_passing_noclones' >> exportvcf.sh
+sbatch --partition=shortq7 --mem=200GB -o exportvcf.o%j -e exportvcf.e%j exportvcf.sh
+# scp ofav_2brad_snp_passing_noclones.recode.vcf to your local machine
+
+bgzip -c ofav_2brad_snp_passing_noclones.recode.vcf > ofav_2brad_snp_passing_noclones.vcf.gz
+tabix -p vcf ofav_2brad_snp_passing_noclones.vcf.gz
 
 
 #------------------------------

@@ -14,6 +14,51 @@ library(parallel)
 cluster <- new_cluster(parallel::detectCores()-1)
 cluster_library(cluster, c('LEA'))
 
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#   BiocManager::install(version = "3.18")
+# BiocManager::install("SNPRelate")
+library(SNPRelate)
+library(gdsfmt)
+
+# Install VariantAnnotation package if not installed
+# BiocManager::install("VariantAnnotation")
+library(VariantAnnotation)
+
+# Install vcfR package if not installed
+# BiocManager::install("vcfR")
+library(vcfR)
+
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load("dendextend", "ggdendro", "tidyverse")
+
+# install.packages("poppr", repos = "https://cloud.r-project.org/")
+library(poppr)
+
+# install,packages("ape")
+library(ape)
+
+
+#### Vcf conversion ####
+
+# Reading in vcf files
+vcf_2brad_noclones <- read.vcfR("ofav_2brad_snp_passing_noclones.vcf.gz") 
+
+# Convert vcf to gds
+geno_2brad_noclones <- extract.gt(vcf_2brad_noclones, as.numeric = T) 
+snpgdsCreateGeno("ofav_2brad_snp_passing_noclones.gds", geno_2brad_noclones)
+
+# Creating a genind object for poppr
+genlight_2brad_noclones <- vcfR2genlight(vcf_2brad_noclones) 
+
+# Converting to snpclone object
+snpclone_2brad_noclones <- poppr::as.snpclone(genlight_2brad_noclones) 
+
+
+#### Dissimilarity matrix ####
+
+dist_2brad_noclones <- bitwise.dist(snpclone_2brad_noclones)
+write.csv(as.matrix(dist_2brad_noclones), file = "ofav_2brad_snp_passing_noclones_dist.csv")
+
 
 #### data conversion ####
 
@@ -21,11 +66,15 @@ cluster_library(cluster, c('LEA'))
 # ped2lfmm("ofav_wgs_gwas.ped", force = T)
 # lfmm2geno("ofav_wgs_gwas.lfmm", force = T)
 
+# ped2lfmm("ofav_2brad_snp_passing_noclones.ped", force = T)
+# lfmm2geno("ofav_2brad_snp_passing_noclones.lfmm", force = T)
+
 
 #### PCA ####
 
 # running the PCA, then comment out
 # pc = pca("ofav_wgs_gwas.lfmm", scale = TRUE)
+pc_2brad = pca("ofav_2brad_snp_passing_noclones.lfmm", scale = TRUE)
 
 # loading in a PCA that has already been run
 pc = load.pcaProject("ofav_wgs_gwas.pcaProject")
@@ -234,13 +283,18 @@ pacman::p_load("dendextend", "ggdendro", "tidyverse")
 
 # Reading in dissimilarity matrices
 dissim_wgs_noclones <- t(as.matrix(read.csv("ofav_wgs_snp_passing_noclones_dist.csv", row.names = 1, head = T)))
+dissim_2brad_noclones <- t(as.matrix(read.csv("ofav_2brad_snp_passing_noclones_dist.csv", row.names = 1, head = T)))
 
 # Reading in metadata
 wgs_noclones_metadata = read.csv("bams_wgs_noclones_metadata.csv", header = T) # WGS 
+rad_noclones_metadata = read.csv("bams_2brad_noclones_metadata.csv", header = T) # 2bRAD 
 
 # Creating row and column names for dissimilarity matrix
 dimnames(dissim_wgs_noclones) = list(wgs_noclones_metadata[,1],wgs_noclones_metadata[,1]) # WGS 
 wgs_noclones_hclust = hclust(as.dist(dissim_wgs_noclones),"ave")
+
+dimnames(dissim_2brad_noclones) = list(rad_noclones_metadata[,1],rad_noclones_metadata[,1]) # WGS 
+rad_noclones_hclust = hclust(as.dist(dissim_2brad_noclones),"ave")
 
 # Coding factors for tree plotting
 Rgroup = wgs_noclones_metadata$Rgroup # WGS 
@@ -255,11 +309,19 @@ Hybrid = as.factor(wgs_noclones_metadata$hybrid)
 wgs_noclones_dend = dissim_wgs_noclones %>% as.dist() %>% hclust(.,"ave") %>% as.dendrogram() # WGS 
 wgs_noclones_data = wgs_noclones_dend %>% dendro_data()
 
+rad_noclones_dend = dissim_2brad_noclones %>% as.dist() %>% hclust(.,"ave") %>% as.dendrogram() # WGS 
+rad_noclones_data = rad_noclones_dend %>% dendro_data()
+
 # Making the branches hang shorter so we can easily see clonal groups
 wgs_noclones_data$segments$yend2 = wgs_noclones_data$segments$yend # WGS 
 for(i in 1:nrow(wgs_noclones_data$segments)) {
   if (wgs_noclones_data$segments$yend2[i] == 0) {
     wgs_noclones_data$segments$yend2[i] = (wgs_noclones_data$segments$y[i] - 0.01)}}
+
+rad_noclones_data$segments$yend2 = rad_noclones_data$segments$yend # WGS 
+for(i in 1:nrow(rad_noclones_data$segments)) {
+  if (rad_noclones_data$segments$yend2[i] == 0) {
+    rad_noclones_data$segments$yend2[i] = (rad_noclones_data$segments$y[i] - 0.01)}}
 
 wgs_noclones_dendpoints = wgs_noclones_data$labels
 wgs_noclones_dendpoints$Rgroup = Rgroup[order.dendrogram(wgs_noclones_dend)]
@@ -271,6 +333,9 @@ wgs_noclones_dendpoints$source=Source[order.dendrogram(wgs_noclones_dend)]
 wgs_noclones_dendpoints$hybrid=Hybrid[order.dendrogram(wgs_noclones_dend)]
 rownames(wgs_noclones_dendpoints) = wgs_noclones_dendpoints$label
 
+rad_noclones_dendpoints = rad_noclones_data$labels
+rownames(rad_noclones_dendpoints) = rad_noclones_dendpoints$label
+
 # Making points at the ends of branches so sample IDs line up
 point_wgs = as.vector(NA)  # WGS
 for(i in 1:nrow(wgs_noclones_data$segments)) {
@@ -279,6 +344,14 @@ for(i in 1:nrow(wgs_noclones_data$segments)) {
   } else {
     point_wgs[i] = NA}}
 wgs_noclones_dendpoints$y = point_wgs[!is.na(point_wgs)]
+
+point_2brad = as.vector(NA)  # WGS
+for(i in 1:nrow(rad_noclones_data$segments)) {
+  if (rad_noclones_data$segments$yend[i] == 0) {
+    point_2brad[i] = rad_noclones_data$segments$y[i] - 0.01
+  } else {
+    point_2brad[i] = NA}}
+rad_noclones_dendpoints$y = point_2brad[!is.na(point_2brad)]
 
 # plotting dendrogram
 wgs_noclones_dendrogram = ggplot() +  # WGS 
@@ -308,6 +381,34 @@ wgs_noclones_dendrogram = wgs_noclones_dendrogram + theme(
   legend.position = "right")
 wgs_noclones_dendrogram
 ggsave("wgs_noclones_dendrogram.pdf", plot = wgs_noclones_dendrogram, height = 6, width = 24, units = "in", dpi = 300) # WGS 
+
+rad_noclones_dendrogram = ggplot() +  # 2bRAD 
+  geom_segment(data = segment(rad_noclones_data), aes(x = x, y = y, xend = xend, yend = yend2), size = 0.5) +
+  geom_point(data = rad_noclones_dendpoints, aes(x = x, y = y), size = 4, stroke = 0.25) +
+  geom_text(data = rad_noclones_dendpoints, aes(x = x, y = (y - .0065), label = label), angle = 90) +
+  labs(y = "Genetic distance") +
+  guides(fill = guide_legend(override.aes = list(shape = 22)))+
+  theme_classic()
+
+rad_noclones_dendrogram = rad_noclones_dendrogram + theme(  
+  axis.title.x = element_blank(),
+  axis.text.x = element_blank(),
+  axis.line.x = element_blank(),
+  axis.ticks.x = element_blank(),
+  axis.title.y = element_text(size = 12, color = "black", angle = 90),
+  axis.text.y = element_text(size = 10, color = "black"),
+  axis.line.y = element_line(),
+  axis.ticks.y = element_line(),
+  panel.grid = element_blank(),
+  panel.border = element_blank(),
+  panel.background = element_blank(),
+  plot.background = element_blank(),
+  # legend.key = element_blank(),
+  legend.title = element_text(size = 12),
+  legend.text = element_text(size = 10),
+  legend.position = "right")
+rad_noclones_dendrogram
+ggsave("2brad_noclones_dendrogram.pdf", plot = rad_noclones_dendrogram, height = 6, width = 24, units = "in", dpi = 300) # 2bRAD 
 
 # 4 susceptibility groups
 wgs_noclones_dendrogram_4clusters = ggplot() +  # WGS 
