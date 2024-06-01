@@ -1,4 +1,4 @@
-## Genome-Wide Association Study (GWAS) pipeline, version May 31, 2024
+## Genome-Wide Association Study (GWAS) pipeline, version June 1, 2024
 # Created by Michael Studivan (studivanms@gmail.com) based on Andries Marees' GitHub and Vollmer et al. 2023 (Science)
 https://github.com/MareesAT/GWA_tutorial/
 https://doi.org/10.1126/science.adi3601
@@ -76,7 +76,7 @@ echo '#!/bin/sh' > exportvcf.sh
 echo 'module load vcftools-0.1.14-gcc-8.3.0-safy5vc' >> exportvcf.sh
 echo 'vcftools --gzvcf ofav_wgs_snp_passing.vcf.gz --remove clones_remove_wgs.txt --recode --out ofav_wgs_snp_passing_noclones' >> exportvcf.sh
 sbatch --partition=shortq7 --mem=200GB -o exportvcf.o%j -e exportvcf.e%j exportvcf.sh
-# scp ofav_wgs_snp_passing_noclones.recode.vcf to your local machine
+# scp ofav_wgs_snp_passing_noclones.recode.vcf and ofav_2brad_snp_passing_noclones.ped to your local machine
 
 bgzip -c ofav_wgs_snp_passing_noclones.recode.vcf > ofav_wgs_snp_passing_noclones.vcf.gz
 tabix -p vcf ofav_wgs_snp_passing_noclones.vcf.gz
