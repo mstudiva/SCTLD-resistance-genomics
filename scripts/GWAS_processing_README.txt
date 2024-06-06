@@ -1,4 +1,4 @@
-## Genome-Wide Association Study (GWAS) pipeline, version June 1, 2024
+## Genome-Wide Association Study (GWAS) pipeline, version June 6, 2024
 # Created by Michael Studivan (studivanms@gmail.com) based on Andries Marees' GitHub and Vollmer et al. 2023 (Science)
 https://github.com/MareesAT/GWA_tutorial/
 https://doi.org/10.1126/science.adi3601
@@ -213,6 +213,7 @@ echo '#!/bin/sh' > export.sh
 echo 'module load plink-1.07-gcc-8.3.0-azf4a6i' >> export.sh
 echo 'plink --bfile ofav_wgs_snp_passing_noclones_filtered_lowmaf_hwe_het --recode --out ofav_wgs_gwas' >>export.sh
 sbatch --partition=shortq7 --mem=200GB -o export.o%j -e export.e%j export.sh
+# Check export.o######## for the number of SNPs passing all filters: 4192708
 # scp ofav_wgs_gwas.ped and ofav_wgs_gwas.map to your local machine
 
 # Continue with the R script GWAS_analysis.R
