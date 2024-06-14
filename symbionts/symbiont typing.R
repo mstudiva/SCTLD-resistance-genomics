@@ -89,7 +89,7 @@ ggsave("WGS symbionts.pdf", plot= wgsPlot, width=30, height=20, units="in", dpi=
 # Means by genera
 wgsPerc %>%
   group_by(variable) %>%
-  dplyr::summarize(Mean = mean(value, na.rm=TRUE)) -> wgsMean
+  dplyr::summarize(Mean = mean(value, na.rm=TRUE), SEM=(sd(value)/sqrt(n()))) -> wgsMean
 write.csv(wgsMean, file = "WGS_zoox_means.csv")
 
 
@@ -176,7 +176,7 @@ ggsave("2bRAD symbionts.pdf", plot= radPlot, width=30, height=20, units="in", dp
 # Means by genera
 radPerc %>%
   group_by(variable) %>%
-  dplyr::summarize(Mean = mean(value, na.rm=TRUE)) -> radMean
+  dplyr::summarize(Mean = mean(value, na.rm=TRUE), SEM=(sd(value)/sqrt(n()))) -> radMean
 write.csv(radMean, file = "2bRAD_zoox_means.csv")
 
 
@@ -202,7 +202,7 @@ ggsave("All symbionts.pdf", plot= zooxPlot, width=30, height=40, units="in", dpi
 # Means by genera
 zooxPerc %>%
   group_by(variable) %>%
-  dplyr::summarize(Mean = mean(value, na.rm=TRUE)) -> zooxMean
+  dplyr::summarize(Mean = mean(value, na.rm=TRUE), SEM=(sd(value)/sqrt(n()))) -> zooxMean
 write.csv(zooxMean, file = "All_zoox_means.csv")
 
 
@@ -229,5 +229,5 @@ ggsave("Technical replicate symbionts.pdf", plot= repsPlot, width=10, height=15,
 # Means by genera
 zooxReps %>%
   group_by(PutGeno, variable) %>%
-  dplyr::summarize(Mean = mean(value, na.rm=TRUE)) -> repsMean
+  dplyr::summarize(Mean = mean(value, na.rm=TRUE), SEM=(sd(value)/sqrt(n()))) -> repsMean
 write.csv(repsMean, file = "Rep_zoox_means.csv")
