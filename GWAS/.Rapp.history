@@ -1,0 +1,7 @@
+library(LEA)
+library(multidplyr)
+library(multidplyr)
+library(parallel)
+cluster <- new_cluster(parallel::detectCores()-1)
+cluster_library(cluster, c('LEA'))
+pc_2brad = pca("ofav_2brad_snp_passing_noclones.lfmm", scale = TRUE)

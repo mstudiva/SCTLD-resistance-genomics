@@ -1,7 +1,7 @@
 #### packages ####
 
 # if (!require("BiocManager", quietly = TRUE))
-  # install.packages("BiocManager")
+# install.packages("BiocManager")
 
 # BiocManager::install("LEA")
 library(LEA)
